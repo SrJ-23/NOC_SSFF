@@ -7,9 +7,15 @@ from typing import Protocol
 
 from src.utils.logging_utils import get_logger
 
+import os
+
 logger = get_logger(__name__)
 
-DB_PATH = Path("noc_monitoreo.db")
+if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    DB_PATH = Path("/tmp/noc_monitoreo.db")
+else:
+    DB_PATH = Path("noc_monitoreo.db")
+
 
 class SheetsClient(Protocol):
     def leer_todos(self, hoja: str) -> list[dict]: ...

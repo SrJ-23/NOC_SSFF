@@ -2,8 +2,9 @@
 from pathlib import Path
 import logging
 
-PLANOS_PARQUET = Path("src/data/planos.parquet")
-REFERIDOS_PARQUET = Path("src/data/referidos.parquet")
+BASE_DIR = Path(__file__).resolve().parent.parent
+PLANOS_PARQUET = BASE_DIR / "data" / "planos.parquet"
+REFERIDOS_PARQUET = BASE_DIR / "data" / "referidos.parquet"
 
 class SheetsConfig:
     sheet_personal = "personal"

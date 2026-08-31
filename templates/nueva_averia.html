@@ -1,0 +1,88 @@
+<!-- templates/nueva_averia.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3">
+        <a href="/" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-arrow-left text-lg"></i></a>
+        <h2 class="text-xl font-bold">Registrar Nueva Avería Manual</h2>
+    </div>
+
+    <form action="/nueva-averia" method="POST" class="bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Código INC *</label>
+                <input type="text" name="inc" required placeholder="INC0000123" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tecnología *</label>
+                <select name="tipo" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                    {% for t in tipos_incidencia %}
+                        <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tipo de Falla</label>
+                <select name="tipo_falla" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                    <option value="CORTE DE FIBRA">CORTE DE FIBRA</option>
+                    <option value="FALLA DE ENERGIA">FALLA DE ENERGIA</option>
+                    <option value="FALLA DE EQUIPO">FALLA DE EQUIPO</option>
+                    <option value="OTRO">OTRO</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Supervisor BOSF</label>
+                <input type="text" name="bosf" placeholder="Ej: Miguel Barja" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Departamento *</label>
+                <input type="text" name="departamento" required placeholder="Lima" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Provincia *</label>
+                <input type="text" name="provincia" required placeholder="Lima" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Distrito *</label>
+                <input type="text" name="distrito" required placeholder="Callao" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Contratista PEXT</label>
+                <input type="text" name="pext" placeholder="Técnico de Red" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Servicios Afectados *</label>
+                <div class="flex items-center space-x-4 h-10">
+                    {% for s in servicios %}
+                        <label class="inline-flex items-center text-xs text-slate-300">
+                            <input type="checkbox" name="servicios" value="{{ s }}" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                            <span class="ml-1.5">{{ s }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Observaciones de Inicio</label>
+            <textarea name="observaciones" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Plano: LMCA036&#10;Clientes: 117"></textarea>
+        </div>
+
+        <div class="flex space-x-3 pt-2">
+            <a href="/" class="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-400 px-4 py-2.5 rounded-lg text-center font-semibold transition text-sm">Cancelar</a>
+            <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg font-semibold transition text-sm">Crear Avería</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

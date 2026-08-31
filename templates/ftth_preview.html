@@ -1,0 +1,341 @@
+<!-- templates/ftth_preview.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- ─── Header ──────────────────────────────────────────────────────────── -->
+    <div class="bg-teal-950/40 border border-teal-800/60 rounded-xl p-5 shadow-xl">
+        <div class="flex items-start gap-4">
+            <div class="text-teal-400 text-3xl mt-0.5"><i class="fa-solid fa-network-wired"></i></div>
+            <div class="flex-1">
+                <h2 class="text-lg font-bold text-teal-300">Análisis de Alarmas FTTH</h2>
+                <p class="text-sm text-slate-300 mt-1">
+                    Revise los resultados del análisis. Confirme nuevas incidencias, actualice el impacto
+                    de las existentes y cierre las que ya se recuperaron.
+                </p>
+                <div class="flex flex-wrap gap-3 mt-3 text-[11px]">
+                    {% if reporte.olts %}
+                    <span class="bg-teal-950/60 border border-teal-800 text-teal-300 px-2.5 py-1 rounded-full">
+                        <i class="fa-solid fa-server mr-1"></i>OLT: {{ reporte.olts | join(', ') }}
+                    </span>
+                    {% endif %}
+                    {% if reporte.arrived_on_str %}
+                    <span class="bg-slate-900 border border-slate-700 text-slate-400 px-2.5 py-1 rounded-full">
+                        <i class="fa-solid fa-clock mr-1"></i>{{ reporte.arrived_on_str }}
+                    </span>
+                    {% endif %}
+                    <span class="bg-indigo-950/60 border border-indigo-800 text-indigo-300 px-2.5 py-1 rounded-full">
+                        <i class="fa-solid fa-users mr-1"></i>{{ reporte.total_onts }} ONTs en el reporte
+                    </span>
+                    {% if grupos_nuevos %}
+                    <span class="bg-amber-950/60 border border-amber-800 text-amber-300 px-2.5 py-1 rounded-full">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                        {{ grupos_nuevos | sum(attribute='planos'|length) }} plano(s) nuevos
+                    </span>
+                    {% endif %}
+                    {% if actualizaciones %}
+                    <span class="bg-blue-950/60 border border-blue-800 text-blue-300 px-2.5 py-1 rounded-full">
+                        <i class="fa-solid fa-rotate mr-1"></i>{{ actualizaciones | length }} incidencia(s) con cambios
+                    </span>
+                    {% endif %}
+                    {% if planos_recuperados_completos %}
+                    <span class="bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-2.5 py-1 rounded-full">
+                        <i class="fa-solid fa-circle-check mr-1"></i>{{ planos_recuperados_completos | length }} plano(s) recuperados
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 1: PLANOS NUEVOS → CREAR INCIDENCIAS                          -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    {% if grupos_nuevos %}
+    <div class="space-y-4">
+        <h3 class="text-sm font-bold text-amber-300 flex items-center gap-2">
+            <i class="fa-solid fa-circle-plus"></i>
+            Nuevas Incidencias FTTH Detectadas
+        </h3>
+
+        {% for grupo in grupos_nuevos %}
+        <form action="/ftth-confirmar" method="POST" class="bg-slate-950 border border-amber-800/40 rounded-xl overflow-hidden shadow-lg">
+            <!-- Datos ocultos -->
+            <input type="hidden" name="planos_json" value='{{ grupo.planos | tojson }}'>
+            <input type="hidden" name="total_onts" value="{{ grupo.total_onts }}">
+            <input type="hidden" name="olt_name" value="{{ grupo.olt }}">
+            <input type="hidden" name="arrived_on_str" value="{{ reporte.arrived_on_str }}">
+
+            <!-- Header del grupo -->
+            <div class="bg-amber-950/30 px-5 py-3 border-b border-amber-800/30 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    {% if grupo.es_masiva %}
+                    <span class="text-[10px] font-bold bg-amber-700/60 text-amber-200 border border-amber-600/50 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                        <i class="fa-solid fa-layer-group mr-1"></i>Masiva FTTH · Troncal
+                    </span>
+                    {% else %}
+                    <span class="text-[10px] font-bold bg-teal-900/60 text-teal-300 border border-teal-700/50 px-2 py-0.5 rounded-full uppercase tracking-wide">
+                        <i class="fa-solid fa-circle-dot mr-1"></i>Individual
+                    </span>
+                    {% endif %}
+                    <span class="text-xs font-bold text-slate-200">OLT: {{ grupo.olt }}</span>
+                    <span class="text-xs text-slate-400">{{ grupo.planos | length }} plano(s) · {{ grupo.total_onts }} ONTs</span>
+                </div>
+                {% if grupo.es_masiva %}
+                <span class="text-[11px] text-amber-400/70 italic">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
+                    Múltiples planos de la misma troncal agrupados en una sola incidencia
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Tabla de planos -->
+            <div class="px-5 py-3">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-[10px] font-bold text-slate-500 uppercase border-b border-slate-800 pb-1">
+                            <th class="text-left py-1.5 pr-4">Plano</th>
+                            <th class="text-right py-1.5">ONTs Afectadas</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/50">
+                        {% for p in grupo.planos %}
+                        <tr class="hover:bg-slate-900/40">
+                            <td class="py-2 pr-4 font-mono font-bold text-slate-200">{{ p.plano }}</td>
+                            <td class="py-2 text-right text-amber-400 font-semibold">{{ p.onts }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="border-t border-slate-700/60 font-bold">
+                            <td class="py-2 text-slate-400">Total</td>
+                            <td class="py-2 text-right text-amber-300">{{ grupo.total_onts }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Formulario de configuración -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 pb-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Ticket INC</label>
+                    <input type="text" name="inc" placeholder="INC000..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tipo de Falla *</label>
+                    <select name="tipo_falla" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                        <option>Corte de Fibra FTTH</option>
+                        <option>Caida de OLT FTTH</option>
+                        <option>Falla de Equipo FTTH</option>
+                        <option>Corte de Energia en Nodo FTTH</option>
+                        <option>Degradacion de Senal FTTH</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">BOSF Asignado</label>
+                    <select name="bosf" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                        <option value="">-- Sin Asignar --</option>
+                        {% for p in personal_activos %}
+                        <option value="{{ p.nombre }}">{{ p.nombre }}{{ (' -' + p.telefono) if p.telefono else '' }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Hora Avería *</label>
+                    <input type="text" name="hora_averia" value="{{ hora_actual }}" required
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono" placeholder="HH:MM">
+                </div>
+            </div>
+
+            <div class="px-5 pb-4 flex justify-end">
+                <button type="submit" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-6 py-2 rounded-lg shadow transition flex items-center gap-2 text-xs">
+                    <i class="fa-solid fa-bolt"></i>Registrar Incidencia FTTH
+                </button>
+            </div>
+        </form>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 2: PLANOS CON CAMBIO DE ONTs → ACTUALIZAR IMPACTO             -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    {% if actualizaciones %}
+    <div class="space-y-4">
+        <h3 class="text-sm font-bold text-blue-300 flex items-center gap-2">
+            <i class="fa-solid fa-rotate"></i>
+            Actualización de Impacto — Incidencias en Curso
+        </h3>
+
+        <form action="/ftth-actualizar-impacto" method="POST" class="space-y-4">
+            <input type="hidden" name="hora" value="{{ hora_actual }}">
+
+            {% for upd in actualizaciones %}
+            {% set inc = upd.inc %}
+            {% set planos_data = upd.planos_nuevos_data %}
+            {% set total_recuperados = upd.total_recuperados %}
+            {% set total_nuevo = upd.total_nuevo %}
+            <!-- Datos ocultos para el backend -->
+            <input type="hidden" name="planos_nuevos_str_{{ inc.id }}" value="{{ upd.planos_nuevos_str }}">
+            <input type="hidden" name="total_nuevo_{{ inc.id }}" value="{{ total_nuevo }}">
+
+
+            <div class="bg-slate-950 border border-blue-800/40 rounded-xl overflow-hidden shadow-lg">
+                <!-- Header -->
+                <div class="bg-blue-950/30 px-5 py-3 border-b border-blue-800/30 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-bold font-mono text-blue-300">{{ inc.inc }}</span>
+                        <span class="text-xs text-slate-400">{{ inc.tipo_falla or 'FTTH' }}</span>
+                        <span class="text-xs text-slate-500">{{ inc.departamento }} / {{ inc.distrito }}</span>
+                    </div>
+                    {% if total_recuperados > 0 %}
+                    <span class="text-[11px] text-emerald-400 font-semibold">
+                        <i class="fa-solid fa-arrow-trend-down mr-1"></i>
+                        {{ total_recuperados }} ONTs recuperadas vs. registro anterior
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Tabla comparativa de planos -->
+                <div class="px-5 py-3">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="text-[10px] font-bold text-slate-500 uppercase border-b border-slate-800">
+                                <th class="text-left py-1.5 pr-4">Plano</th>
+                                <th class="text-right py-1.5 pr-4">ONTs Antes</th>
+                                <th class="text-right py-1.5 pr-4">ONTs Ahora</th>
+                                <th class="text-right py-1.5">Recuperados</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/50">
+                            {% for p in planos_data %}
+                            <tr class="hover:bg-slate-900/40">
+                                <td class="py-2 pr-4 font-mono font-bold text-slate-200">{{ p.plano }}</td>
+                                <td class="py-2 pr-4 text-right text-slate-400">{{ p.onts_antes }}</td>
+                                <td class="py-2 pr-4 text-right font-semibold
+                                    {% if p.onts_ahora < p.onts_antes %}text-emerald-400
+                                    {% elif p.onts_ahora > p.onts_antes %}text-amber-400
+                                    {% else %}text-slate-300{% endif %}">
+                                    {{ p.onts_ahora }}
+                                </td>
+                                <td class="py-2 text-right font-bold
+                                    {% if p.recuperados > 0 %}text-emerald-400{% else %}text-slate-600{% endif %}">
+                                    {% if p.recuperados > 0 %}+{{ p.recuperados }}{% else %}—{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="border-t border-slate-700/60 font-bold text-xs">
+                                <td class="py-2 text-slate-400">Total</td>
+                                <td class="py-2 pr-4 text-right text-slate-400">{{ planos_data | sum(attribute='onts_antes') }}</td>
+                                <td class="py-2 pr-4 text-right text-slate-300">{{ total_nuevo }}</td>
+                                <td class="py-2 text-right text-emerald-400">
+                                    {% if total_recuperados > 0 %}+{{ total_recuperados }}{% else %}—{% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Nota de actualización -->
+                <div class="px-5 pb-4">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                        Nota para el historial (editable)
+                    </label>
+                    <input type="text" name="nota_upd_{{ inc.id }}"
+                        value="Se actualiza impacto. Se verifica restablecimiento de {{ total_recuperados }} clientes FTTH. Quedan {{ total_nuevo }} ONTs afectadas."
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono">
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg shadow transition flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-floppy-disk"></i>Guardar Actualizaciones de Impacto
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 3: PLANOS RECUPERADOS COMPLETAMENTE → CIERRE                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    {% if planos_recuperados_completos %}
+    <div class="space-y-4">
+        <h3 class="text-sm font-bold text-emerald-300 flex items-center gap-2">
+            <i class="fa-solid fa-circle-check"></i>
+            Averías Recuperadas — Ya no figuran en el reporte de alarmas
+        </h3>
+
+        <form action="/ftth-actualizar-impacto" method="POST" class="bg-slate-950 border border-emerald-800/40 rounded-xl overflow-hidden shadow-lg">
+            <input type="hidden" name="hora" value="{{ hora_actual }}">
+            <div class="bg-emerald-950/20 px-5 py-3 border-b border-emerald-800/30">
+                <p class="text-xs text-emerald-300/80">
+                    <i class="fa-solid fa-circle-info mr-1.5"></i>
+                    Los siguientes planos <strong>ya no están presentes</strong> en el último reporte.
+                    Confirme el cierre para cada incidencia correspondiente.
+                </p>
+            </div>
+
+            <!-- Agrupar por incidencia para mostrar un cierre por inc -->
+            {% set cierres_por_inc = {} %}
+            {% for item in planos_recuperados_completos %}
+                {% if item.inc_id not in cierres_por_inc %}
+                    {% set _ = cierres_por_inc.update({item.inc_id: {"inc_code": item.inc_code, "planos": []}}) %}
+                {% endif %}
+                {% set _ = cierres_por_inc[item.inc_id]["planos"].append(item.plano) %}
+            {% endfor %}
+
+            <div class="divide-y divide-slate-800/40">
+                {% for inc_id, datos in cierres_por_inc.items() %}
+                <div class="px-5 py-4 space-y-2">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-bold font-mono text-emerald-300">{{ datos.inc_code }}</span>
+                        <span class="text-xs text-slate-500">Planos: {{ datos.planos | join(', ') }}</span>
+                    </div>
+                    <input type="text" name="cierre_ftth_{{ inc_id }}"
+                        value="Se valida restablecimiento de servicios FTTH. Se cierra notificacion."
+                        class="w-full bg-slate-900 border border-emerald-800/40 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 font-mono">
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="px-5 pb-4 flex justify-end">
+                <button type="submit" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-6 py-2.5 rounded-lg shadow transition flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-flag-checkered"></i>Confirmar Cierres
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Sin cambios -->
+    {% if not grupos_nuevos and not actualizaciones and not planos_recuperados_completos %}
+    <div class="bg-slate-950 border border-slate-800 rounded-xl p-10 text-center">
+        <i class="fa-solid fa-circle-check text-4xl text-emerald-500 mb-3 block"></i>
+        <p class="text-slate-300 font-semibold">Sin cambios detectados</p>
+        <p class="text-xs text-slate-500 mt-1">Todos los planos del reporte ya están registrados y sin variaciones de ONTs.</p>
+        <a href="/" class="inline-block mt-4 text-xs text-teal-400 hover:underline">← Volver al dashboard</a>
+    </div>
+    {% endif %}
+
+    <!-- Botón volver -->
+    {% if grupos_nuevos or actualizaciones or planos_recuperados_completos %}
+    <div class="pt-2 border-t border-slate-800 flex justify-between">
+        <a href="/" class="bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-semibold px-4 py-2.5 rounded-lg transition">
+            <i class="fa-solid fa-arrow-left mr-1.5"></i>Cancelar y volver
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+// Pre-compute the planos_nuevos_str hidden field values correctly
+// The Jinja zip approach may not render perfectly, so we compute on load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[name^="planos_nuevos_str_"]').forEach(function(inp) {
+        // Value is set server-side, just leave as-is
+    });
+});
+</script>
+{% endblock %}

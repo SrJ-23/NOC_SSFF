@@ -1,0 +1,143 @@
+<!-- templates/historica.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Encabezado y Filtros de Fecha -->
+    <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-xl space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-850 pb-4">
+            <div>
+                <h2 class="text-base font-bold text-slate-100 flex items-center">
+                    <i class="fa-solid fa-clock-rotate-left text-emerald-400 mr-2"></i>Historial de Averías Cerradas
+                </h2>
+                <p class="text-xs text-slate-400">Consulta de incidencias solucionadas con filtro por rango de fechas</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800/80 text-emerald-300 font-mono font-medium">
+                    <i class="fa-solid fa-circle-check mr-1.5"></i>{{ total_cerradas }} avería(s) cerrada(s)
+                </span>
+            </div>
+        </div>
+
+        <!-- Formulario Selector de Fechas -->
+        <form action="/historica" method="GET" class="flex flex-wrap items-end gap-3 pt-1">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Fecha Desde</label>
+                <input type="date" name="fecha_desde" value="{{ fecha_desde }}"
+                    class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Fecha Hasta</label>
+                <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}"
+                    class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+            </div>
+
+            <div class="flex items-center space-x-2 pt-1">
+                <button type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>Filtrar</span>
+                </button>
+
+                {% if fecha_desde or fecha_hasta %}
+                <a href="/historica"
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3.5 py-2 rounded-lg border border-slate-700 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Limpiar</span>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de Averías Históricas -->
+    <div class="space-y-4">
+        <div class="space-y-3">
+            {% for item in cerradas %}
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition flex items-start space-x-4">
+
+                <!-- Indicador de Estado Resuelto -->
+                <div class="mt-1">
+                    <span class="flex h-3.5 w-3.5 relative">
+                        <span class="inline-block h-3.5 w-3.5 rounded-full bg-emerald-500"></span>
+                    </span>
+                </div>
+
+                <!-- Detalles del Incidente Cerrado -->
+                <div class="flex-1 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-100 text-base flex items-center space-x-2">
+                                <span>{{ item.obj.inc }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded font-mono font-semibold {% if item.obj.tipo.value == 'HFC' %}bg-indigo-950 text-indigo-300 border border-indigo-800{% else %}bg-teal-950 text-teal-300 border border-teal-800{% endif %}">
+                                    {{ item.obj.tipo.value }}
+                                </span>
+                                <span class="text-slate-500 font-normal text-sm">· {{ item.obj.tipo_falla }}</span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">
+                                {{ item.obj.departamento }} / {{ item.obj.provincia }} / {{ item.obj.distrito }}
+                                {% if item.plano %} · Plano: <span class="text-slate-300 font-mono font-medium">{{ item.plano }}</span>{% endif %}
+                                · BOSF: <span class="text-slate-200 font-medium">{{ item.obj.bosf or 'Sin Asignar' }}</span>
+                                · Estado: <span class="text-emerald-400 font-medium font-mono">CERRADA</span>
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="text-right">
+                                <span class="text-xs text-emerald-400 font-mono block">
+                                    <i class="fa-solid fa-check mr-1"></i>Solución: {{ item.fecha_cierre }} {{ item.hora_cierre }}h
+                                </span>
+                                <span class="text-[11px] text-slate-500 font-mono">
+                                    Inicio: {{ item.hora_inicio }}h
+                                </span>
+                            </div>
+                            <form action="/eliminar-incidencia/{{ item.obj.id }}" method="POST"
+                                onsubmit="return confirm('¿Está seguro de que desea eliminar la incidencia histórica {{ item.obj.inc or item.obj.id }}? Esta acción no se puede deshacer.');">
+                                <button type="submit"
+                                    class="text-slate-600 hover:text-rose-400 hover:bg-rose-950/50 p-1.5 rounded-lg transition"
+                                    title="Eliminar incidencia">
+                                    <i class="fa-solid fa-xmark text-sm"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Bloque de Tiempos y Servicios -->
+                    <div class="grid grid-cols-3 gap-4 py-2.5 border-t border-b border-slate-900 text-xs">
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Duración Total</p>
+                            <p class="font-semibold text-emerald-400 mt-0.5">{{ item.duracion_total }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Fecha de Cierre</p>
+                            <p class="font-semibold text-slate-300 mt-0.5">{{ item.fecha_cierre }} {{ item.hora_cierre }}h</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Servicios</p>
+                            <p class="font-semibold text-slate-300 mt-0.5">{{ item.servicios_str }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="flex justify-end space-x-2 text-xs pt-1">
+                        <a href="/detalle/{{ item.obj.id }}"
+                            class="bg-slate-900 hover:bg-slate-800 text-slate-300 px-3.5 py-1.5 rounded-lg font-semibold transition border border-slate-800 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-file-lines text-indigo-400"></i>
+                            <span>Ver Detalle / Mensaje</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-16 bg-slate-950 border border-slate-800 border-dashed rounded-xl">
+                <i class="fa-solid fa-clock-rotate-left text-slate-600 text-3xl mb-3"></i>
+                <p class="text-slate-400 font-medium">No se encontraron averías cerradas en el rango de fechas seleccionado.</p>
+                <p class="text-xs text-slate-600 mt-1">Modifique las fechas del filtro superior para ampliar la búsqueda.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

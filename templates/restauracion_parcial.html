@@ -1,0 +1,195 @@
+﻿<!-- templates/restauracion_parcial.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Header -->
+    <div class="bg-amber-950/40 border border-amber-800/60 rounded-xl p-5 shadow-xl">
+        <div class="flex items-start gap-4">
+            <div class="text-amber-400 text-3xl mt-0.5">
+                <i class="fa-solid fa-arrows-rotate"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-amber-300">Restauracion Parcial Detectada</h2>
+                <p class="text-sm text-slate-300 mt-1">
+                    Una o mas averias masivas han disminuido su impacto: algunos nodos se recuperaron pero la incidencia
+                    <strong>continua abierta</strong>. Revise y confirme la actualizacion antes de guardar.
+                </p>
+                {% if creadas_count > 0 %}
+                <p class="text-xs text-slate-500 mt-1">
+                    <i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i>
+                    {{ creadas_count }} nueva(s) averia(s) fueron registradas previamente.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de actualizaciones -->
+    <form action="/restauracion-parcial" method="POST" class="space-y-8">
+        {% for rest in restauraciones %}
+        {% set inc = rest.inc %}
+        {% set fecha_inicio = inc.hora_inicio.strftime('%d/%m/%Y') %}
+        {% set hora_inicio_str = inc.hora_inicio.strftime('%H:%M') %}
+        {% set hora_ahora = inc.ultima_actualizacion.strftime('%H:%M') %}
+        {% set fecha_ahora = inc.ultima_actualizacion.strftime('%d/%m/%Y') %}
+
+        <div class="bg-slate-950 border border-amber-800/30 rounded-2xl p-6 space-y-5 shadow-lg">
+            <!-- Cabecera -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-mono font-bold text-amber-400 bg-amber-950/60 border border-amber-800 px-2.5 py-1 rounded">
+                        {{ inc.inc }}
+                    </span>
+                    <span class="text-sm font-semibold text-slate-200">
+                        {{ inc.departamento }} / {{ inc.provincia }} / {{ inc.distrito }}
+                    </span>
+                </div>
+                <div class="flex gap-2 text-xs text-slate-400">
+                    <span class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5">
+                        <i class="fa-solid fa-rotate-left mr-1 text-amber-400"></i>
+                        {{ rest.planos_recuperados | length }} nodo(s) recuperado(s)
+                    </span>
+                    <span class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5">
+                        <i class="fa-solid fa-users mr-1 text-emerald-400"></i>
+                        {{ rest.clientes_recuperados }} cli. restablecidos
+                    </span>
+                </div>
+            </div>
+
+            <!-- Resumen -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-4">
+                    <p class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-2">
+                        <i class="fa-solid fa-circle-check mr-1"></i>Nodos Recuperados
+                    </p>
+                    <ul class="space-y-1">
+                        {% for r in rest.planos_recuperados %}
+                        <li class="text-xs text-slate-300">
+                            <span class="font-mono font-bold text-emerald-300">{{ r.plano }}</span>
+                            <span class="text-slate-500 ml-1">({{ r.clientes }} cli.)</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="bg-indigo-950/30 border border-indigo-800/40 rounded-xl p-4">
+                    <p class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider mb-2">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Nodos Aun Afectados
+                    </p>
+                    <ul class="space-y-1">
+                        {% for p in rest.planos_restantes %}
+                        <li class="text-xs font-mono font-bold text-indigo-300">{{ p }}</li>
+                        {% endfor %}
+                    </ul>
+                    <p class="text-[11px] text-slate-500 mt-2">
+                        Total: <strong class="text-slate-300">{{ rest.nuevo_total_clientes }} clientes</strong> en {{ rest.nuevo_n_nodos }} nodo(s)
+                    </p>
+                </div>
+            </div>
+
+            <!-- Mensaje pre-generado -->
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    <i class="fa-brands fa-whatsapp text-emerald-400 mr-1"></i>
+                    Mensaje de Actualizacion Pre-generado (editable)
+                </label>
+                <textarea name="mensaje_{{ inc.id }}" id="msg_{{ inc.id }}" rows="20"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-xs text-slate-200 focus:outline-none focus:border-amber-500 font-mono leading-relaxed resize-y"
+>*NOC SERVICIOS FIJOS*
+TIPO DE MENSAJE: *ACTUALIZACION*
+TICKET ASIGNADO: {{ inc.inc }}
+
+*FALLA:*
+{{ inc.tipo_falla }} en Departamento de {{ inc.departamento.upper() }} Prov. de {{ inc.provincia.upper() }} Distrito de {{ inc.distrito.upper() }} - {{ fecha_inicio }} {{ hora_inicio_str }} h
+
+*IMPACTO ({{ fecha_ahora }} {{ hora_ahora }} h)*
+
+*AFECTACION DE SERVICIOS FIJOS:*   
+1. DEPARTAMENTO DE {{ inc.departamento.upper() }}, PROV. DE {{ inc.provincia.upper() }}
+DISTRITO(S):
+{{ inc.distrito.upper() }}
+*HFC ({{ rest.nuevo_n_nodos }} NODOS): {{ rest.nuevo_total_clientes }} clientes
+
+*ATIENDE:*            
+* BOSF {{ inc.bosf or 'Pendiente' }} con {{ inc.inc }}
+
+*ACTUALIZACION:*
+{{ fecha_ahora }}
+*{{ hora_ahora }}h Se verifica que han restablecido {{ rest.clientes_recuperados }} clientes ({% for r in rest.planos_recuperados %}{{ r.plano }} ({{ r.clientes }} cli.){% if not loop.last %}, {% endif %}{% endfor %}). Se actualiza impacto.</textarea>
+            </div>
+
+            <!-- Nota interna -->
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Nota interna para el historial (editable)
+                </label>
+                <input type="text" name="nota_{{ inc.id }}"
+                    value="Se verifica que han restablecido {{ rest.clientes_recuperados }} clientes ({% for r in rest.planos_recuperados %}{{ r.plano }} ({{ r.clientes }} cli.){% if not loop.last %}, {% endif %}{% endfor %}). Se actualiza impacto."
+                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+            </div>
+
+            <!-- Hiddens -->
+            <input type="hidden" name="planos_restantes_{{ inc.id }}" value="{{ rest.planos_restantes | join(', ') }}">
+            <input type="hidden" name="detalle_distritos_{{ inc.id }}" value="{{ rest.detalle_distritos_nuevo }}">
+
+            <div class="flex justify-end">
+                <button type="button" onclick="copiarMensaje('{{ inc.id }}')"
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Copiar Mensaje</span>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if cierres_completos %}
+        <div class="bg-red-950/30 border border-red-800/40 rounded-xl p-4">
+            <p class="text-sm font-bold text-red-400 mb-2">
+                <i class="fa-solid fa-lock mr-1.5"></i>
+                Tambien hay {{ cierres_completos | length }} averia(s) con cierre completo:
+            </p>
+            <ul class="space-y-1">
+                {% for inc_c in cierres_completos %}
+                <li class="text-xs text-slate-400 font-mono">- {{ inc_c.inc }} / {{ inc_c.departamento }} / {{ inc_c.distrito }}</li>
+                {% endfor %}
+            </ul>
+            {% for inc_c in cierres_completos %}
+            <input type="hidden" name="cierre_{{ inc_c.id }}" value="Se valida restablecimiento de servicios. Se cierra notificacion.">
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="flex justify-between items-center pt-2 border-t border-slate-800">
+            <a href="/" class="bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-semibold px-4 py-2.5 rounded-lg transition">
+                <i class="fa-solid fa-arrow-left mr-1.5"></i>Cancelar y volver
+            </a>
+            <button type="submit"
+                class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-8 py-2.5 rounded-lg shadow-lg transition flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-floppy-disk"></i>
+                Confirmar y Actualizar Impacto
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function copiarMensaje(id) {
+    const ta = document.getElementById("msg_" + id);
+    if (!ta) return;
+    ta.select();
+    ta.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(ta.value).then(function() {
+        const btn = ta.closest('.space-y-5').querySelector('button');
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i><span>Copiado!</span>';
+            btn.classList.add('text-emerald-400');
+            setTimeout(function() { btn.innerHTML = orig; btn.classList.remove('text-emerald-400'); }, 2000);
+        }
+    }).catch(function() {
+        document.execCommand("copy");
+    });
+}
+</script>
+{% endblock %}

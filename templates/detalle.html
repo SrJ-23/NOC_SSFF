@@ -1,0 +1,56 @@
+<!-- templates/detalle.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6 max-w-4xl mx-auto">
+    <div class="flex items-center space-x-3 mb-4">
+        <a href="/" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-arrow-left text-lg"></i></a>
+        <h2 class="text-xl font-bold">Detalle de Notificación: {{ inc.inc }}</h2>
+    </div>
+
+    <div class="grid grid-cols-3 gap-6">
+        <!-- Mensaje Estructurado (Copiado Rápido) -->
+        <div class="col-span-2 bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-slate-300">Mensaje generado para WhatsApp</span>
+                <button onclick="copiarAlPortapapeles()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded transition">
+                    <i class="fa-solid fa-clipboard mr-1"></i> Copiar Texto
+                </button>
+            </div>
+            <textarea id="whatsapp_text" readonly class="w-full h-80 bg-slate-900 border border-slate-700 rounded-lg p-4 text-xs font-mono text-slate-300 focus:outline-none focus:border-indigo-500 select-all">{{ whatsapp_msg }}</textarea>
+        </div>
+
+        <!-- Información de Campo y Supervisor -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-xl space-y-6">
+            <div>
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Contratista Asignado</h4>
+                <p class="text-sm font-semibold text-slate-200">{{ inc.bosf or 'Sin asignar' }}</p>
+                <p class="text-xs text-slate-400 mt-1">{{ contratista.cargo if contratista else 'Rol no especificado' }}</p>
+            </div>
+            
+            <div>
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Contacto Directo</h4>
+                <p class="text-sm font-mono text-indigo-400 font-semibold">{{ telefono or '—' }}</p>
+            </div>
+
+            <div class="pt-4 border-t border-slate-900">
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ubicación del Plano</h4>
+                <p class="text-xs text-slate-300">{{ inc.departamento }} / {{ inc.provincia }} / {{ inc.distrito }}</p>
+                {% if plano %}
+                    <p class="text-[11px] text-slate-500 mt-2 font-mono">Hub: {{ plano.hub }} · CMTS/OLT: {{ plano.cmts_olt }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copiarAlPortapapeles() {
+    var copyText = document.getElementById("whatsapp_text");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value);
+    alert("Mensaje copiado al portapapeles para WhatsApp.");
+}
+</script>
+{% endblock %}

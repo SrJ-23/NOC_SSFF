@@ -1,0 +1,72 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOC Assistant - Servicios Fijos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="h-full flex text-slate-100 font-sans">
+
+    <!-- Panel de Navegación Lateral (Sidebar) -->
+    <aside class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between">
+        <div>
+            <div class="p-6 border-b border-slate-800">
+                <h1 class="text-xl font-bold tracking-wider text-indigo-400 flex items-center">
+                    <i class="fa-solid fa-satellite-dish mr-2 animate-pulse"></i>SIDERAL NOC ASSISTANT
+                </h1>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold mt-1">Soporte Operativo</p>
+            </div>
+            <nav class="p-4 space-y-1">
+                <a href="/"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-900 hover:text-white transition">
+                    <i class="fa-solid fa-rectangle-list w-5 text-center text-slate-400"></i>
+                    <span>Averías en Curso</span>
+                </a>
+                <a href="/historica"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-900 hover:text-white transition">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center text-slate-400"></i>
+                    <span>Histórica</span>
+                </a>
+                <a href="/nueva-averia"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-900 hover:text-white transition">
+                    <i class="fa-solid fa-circle-plus w-5 text-center text-slate-400"></i>
+                    <span>Registro Manual</span>
+                </a>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-slate-800 text-[11px] text-slate-500 text-center">
+            <i class="fa-solid fa-database mr-1"></i> SQLite Local Activo
+        </div>
+    </aside>
+
+    <!-- Contenido -->
+    <main class="flex-1 flex flex-col overflow-y-auto">
+        <!-- Notificaciones de Alerta -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="p-4 space-y-2">
+            {% for category, msg in messages %}
+            <div
+                class="p-4 rounded-lg text-sm bg-indigo-950/50 border border-indigo-800 text-indigo-200 flex items-center justify-between">
+                <span><i class="fa-solid fa-circle-info mr-2"></i>{{ msg }}</span>
+                <button onclick="this.parentElement.remove()" class="text-indigo-400 hover:text-indigo-200"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="p-8">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+</body>
+
+</html>

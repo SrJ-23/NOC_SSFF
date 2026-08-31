@@ -1,0 +1,70 @@
+<!-- templates/cierre_masivo.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="bg-indigo-950/40 border border-indigo-900 rounded-xl p-6 shadow-xl">
+        <h2 class="text-lg font-bold text-indigo-400 mb-2">Sincronización Completa: Nuevas Registradas</h2>
+        <p class="text-sm text-slate-300">Se han ingresado {{ creadas_count }} nuevas averías HFC a la base de datos de manera correcta.</p>
+    </div>
+
+    <div class="space-y-4">
+        <div>
+            <h3 class="text-lg font-bold text-slate-200">⚠️ Se detectaron Averías Recuperadas</h3>
+            <p class="text-xs text-slate-500 mt-1">Los siguientes planos ya no aparecen con alertas activas en el reporte de Grafana. Seleccione o escriba un motivo para documentar el cierre.</p>
+        </div>
+
+        <form action="/procesar-cierre-masivo" method="POST" class="space-y-4">
+            {% for inc in desaparecidas %}
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-mono font-bold text-indigo-400 bg-indigo-950/50 border border-indigo-900 px-2.5 py-1 rounded">
+                                {{ inc.inc }}
+                            </span>
+                            <span class="text-sm font-semibold text-slate-200 ml-2">Ubicación: {{ inc.departamento }} / {{ inc.distrito }}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Plantilla de Cierre rápido</label>
+                            <select onchange="actualizarMotivo('{{ inc.id }}', this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                                {% if top_closures %}
+                                    {% for tc in top_closures %}
+                                        <option value="{{ tc }}">{{ tc }}</option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="Se valida restablecimiento de servicios. Se cierra notificación.">Se valida restablecimiento de servicios. Se cierra notificación.</option>
+                                    <option value="Se valida retorno de energía comercial. Se restablecen servicios. Se cierra notificación.">Se valida retorno de energía comercial. Se restablecen servicios. Se cierra notificación.</option>
+                                    <option value="Se finaliza fusiones de FO. Se verifica servicios restablecidos. Se cierra notificacion.">Se finaliza fusiones de FO. Se verifica servicios restablecidos. Se cierra notificacion.</option>
+                                    <option value="Se instala GGEE, Se verifica servicios restablecidos. Se cierra notificacion.">Se instala GGEE, Se verifica servicios restablecidos. Se cierra notificacion.</option>
+                                    <option value="Personal realiza mantenimiento en equipos de AA. Temperatura se reestablece en valores normales.">Personal realiza mantenimiento en equipos de AA. Temperatura se reestablece en valores normales.</option>
+                                    <option value="Se retorna energia comercial. Se normaliza temperaturas.">Se retorna energia comercial. Se normaliza temperaturas.</option>
+                                    <option value="Retorna energia comercial. Se verifica servicios restablecidos. Se cierra notificacion.">Retorna energia comercial. Se verifica servicios restablecidos. Se cierra notificacion.</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Motivo del Cierre (Editable)</label>
+                            <input type="text" id="motivo_{{ inc.id }}" name="motivo_{{ inc.id }}" value="Se valida restablecimiento de servicios. Se cierra notificación." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-lg transition text-sm">
+                    <i class="fa-solid fa-lock mr-1.5"></i> Confirmar Cierre de Recuperadas
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function actualizarMotivo(id, valor) {
+    document.getElementById("motivo_" + id).value = valor;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,1100 @@
+<!-- templates/dashboard.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Barra Superior de Acciones Rápidas (3 Botones de Carga) -->
+    <div
+        class="bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h2 class="text-base font-bold text-slate-100 flex items-center">
+                <i class="fa-solid fa-tower-broadcast text-indigo-400 mr-2"></i>Carga de planos
+            </h2>
+            <p class="text-xs text-slate-400">Seleccione la tecnología de ingreso para las incidencias de red</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <!-- Botón 1: Carga HFC -->
+            <button onclick="abrirModal('modal-hfc')"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow transition flex items-center space-x-2">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>HFC</span>
+            </button>
+
+            <!-- Botón 2: Carga FTTH -->
+            <button onclick="abrirModal('modal-ftth')"
+                class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow transition flex items-center space-x-2">
+                <i class="fa-solid fa-network-wired"></i>
+                <span>FTTH</span>
+            </button>
+
+            <!-- Botón 3: Carga Manual -->
+            <button onclick="abrirModal('modal-manual')"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-lg border border-slate-700 shadow transition flex items-center space-x-2">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Carga Manual</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Cuadro de Datos Faltantes (Cuando se detecta una nueva masiva FTTH) -->
+    {% if inc_completar %}
+    <div class="bg-amber-950/40 border-2 border-amber-600/80 rounded-xl p-6 shadow-2xl space-y-4 animate-pulse-once">
+        <div class="flex items-center justify-between border-b border-amber-800/50 pb-3">
+            <div class="flex items-center space-x-3">
+                <span class="p-2 bg-amber-500/20 text-amber-400 rounded-lg text-lg">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </span>
+                <div>
+                    <h3 class="font-bold text-amber-200 text-base">¡Se ha detectado una nueva masiva FTTH!</h3>
+                    <p class="text-xs text-amber-300/80">Complete los datos pendientes para culminar el registro de la
+                        incidencia.</p>
+                </div>
+            </div>
+            <span
+                class="text-xs font-mono bg-amber-900/60 text-amber-200 px-3 py-1 rounded-full border border-amber-700">
+                ID Temporal: {{ inc_completar.id }}
+            </span>
+        </div>
+
+        <form action="/completar-incidencia/{{ inc_completar.id }}" method="POST" class="space-y-4 pt-2">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Código de
+                        Incidencia (INC / Ticket)</label>
+                    <input type="text" name="inc" placeholder="Ej. INC000012345" required
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500 font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">BOSF
+                        Asignado</label>
+                    <select name="bosf"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                        <option value="">Seleccione personal...</option>
+                        {% for p in personal_list %}
+                        <option value="{{ p.nombre }}">{{ p.nombre }} ({{ p.cargo }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">PEXT
+                        Asignado</label>
+                    <input type="text" name="pext" placeholder="Ej. PEXT Centro / Cuadrilla"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Tipo de
+                        Falla</label>
+                    <input type="text" name="tipo_falla" value="{{ inc_completar.tipo_falla }}"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Observaciones
+                        / Detalles Técnicos</label>
+                    <input type="text" name="observaciones" value="{{ inc_completar.observaciones }}"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500 font-mono">
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-2">
+                <a href="/"
+                    class="bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-semibold px-4 py-2 rounded-lg transition">Omitir
+                    por ahora</a>
+                <button type="submit"
+                    class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-6 py-2.5 rounded-lg shadow-lg transition">
+                    <i class="fa-solid fa-check mr-1.5"></i> Culminar y Guardar Incidencia
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Lista de Incidencias: Averías en Curso -->
+    <div class="space-y-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-slate-200 flex items-center">
+                    <i class="fa-solid fa-fire-flame-curved text-rose-500 mr-2"></i>Averías en Curso
+                </h2>
+                <p class="text-xs text-slate-400">Monitoreo activo de incidentes de red HFC y FTTH</p>
+            </div>
+            <button onclick="window.location.href='/'"
+                class="text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 px-3.5 py-2 rounded-lg transition flex items-center space-x-1.5 border border-slate-700">
+                <i class="fa-solid fa-rotate"></i>
+                <span>Actualizar Lista</span>
+            </button>
+        </div>
+
+        <div class="space-y-3">
+            {% for inc in incidencias %}
+            <div
+                class="bg-slate-950 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition flex items-start space-x-4">
+
+                <!-- Indicador Visual (Semaforización) -->
+                <div class="mt-1">
+                    {% if inc.semaforo == 'ROJO' %}
+                    <span class="flex h-3.5 w-3.5 relative">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-500"></span>
+                    </span>
+                    {% elif inc.semaforo == 'AMARILLO' %}
+                    <span class="inline-block h-3.5 w-3.5 rounded-full bg-yellow-500"></span>
+                    {% else %}
+                    <span class="inline-block h-3.5 w-3.5 rounded-full bg-green-500"></span>
+                    {% endif %}
+                </div>
+
+                <!-- Detalles del Incidente -->
+                <div class="flex-1 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-100 text-base flex items-center space-x-2">
+                                <span>{{ inc.obj.inc }}</span>
+                                <span
+                                    class="text-xs px-2 py-0.5 rounded font-mono font-semibold {% if inc.obj.tipo.value == 'HFC' %}bg-indigo-950 text-indigo-300 border border-indigo-800{% else %}bg-teal-950 text-teal-300 border border-teal-800{% endif %}">
+                                    {{ inc.obj.tipo.value }}
+                                </span>
+                                <span class="text-slate-500 font-normal text-sm">· {{ inc.obj.tipo_falla }}</span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-1">
+                                {{ inc.obj.departamento }} / {{ inc.obj.provincia }} / {{ inc.obj.distrito }} · BOSF:
+                                <span class="text-slate-200 font-medium">{{ inc.obj.bosf or 'Sin Asignar' }}</span> ·
+                                Estado: <span class="text-indigo-400 font-medium">{{ inc.obj.estado.value }}</span>
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="text-right">
+                                <span class="text-xs text-slate-400 font-mono block">
+                                    Inicio: {{ inc.obj.hora_inicio.strftime('%H:%M') }}h
+                                </span>
+                                <span class="text-[11px] text-slate-500 font-mono">
+                                    Act: {{ inc.obj.ultima_actualizacion.strftime('%H:%M') }}h
+                                </span>
+                            </div>
+                            <form action="/eliminar-incidencia/{{ inc.obj.id }}" method="POST"
+                                onsubmit="return confirm('¿Está seguro de que desea eliminar la incidencia {{ inc.obj.inc or inc.obj.id }}? Esta acción no se puede deshacer.');">
+                                <button type="submit"
+                                    class="text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 p-1.5 rounded-lg transition"
+                                    title="Eliminar incidencia">
+                                    <i class="fa-solid fa-xmark text-sm"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Bloque de Tiempos y Servicios -->
+                    <div class="grid grid-cols-3 gap-4 py-2.5 border-t border-b border-slate-900 text-xs">
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Tiempo Abierto</p>
+                            <p class="font-semibold text-slate-300 mt-0.5">{{ inc.duracion_inicio }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Sin actualización
+                            </p>
+                            <p class="font-semibold text-slate-300 mt-0.5">{{ inc.duracion_actualizacion }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Afectación</p>
+                            <p class="font-semibold text-slate-300 mt-0.5">{{ inc.servicios_str }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Acciones Rápidas -->
+                    <div class="flex justify-end space-x-2 text-xs pt-1">
+                        <a href="/detalle/{{ inc.obj.id }}"
+                            class="bg-slate-900 hover:bg-slate-800 text-slate-300 px-3.5 py-1.5 rounded-lg font-semibold transition border border-slate-800 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-file-lines text-indigo-400"></i>
+                            <span>Detalles</span>
+                        </a>
+                        {% if inc.obj.estado.value != 'CERRADA' %}
+                        <a href="/actualizar/{{ inc.obj.id }}"
+                            class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-lg font-semibold transition shadow flex items-center space-x-1.5">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Reportar Avance / Cierre</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-16 bg-slate-950 border border-slate-800 border-dashed rounded-xl">
+                <i class="fa-solid fa-circle-check text-emerald-500 text-3xl mb-3"></i>
+                <p class="text-slate-400 font-medium">No se registran averías activas en el NOC.</p>
+                <p class="text-xs text-slate-600 mt-1">Utilice los botones de carga superior para ingresar nuevas
+                    incidencias.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 1: CARGA HFC (GRAFANA)                             -->
+<!-- ======================================================== -->
+<div id="modal-hfc" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div
+        class="bg-slate-950 border border-slate-800 rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="text-base font-bold text-slate-100 flex items-center">
+                <i class="fa-solid fa-chart-line text-indigo-400 mr-2"></i>Pegue la tabla de averías copiada de Grafana
+            </h3>
+            <button onclick="cerrarModal('modal-hfc')" class="text-slate-400 hover:text-white"><i
+                    class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <form action="/carga-hfc" method="POST" id="form-hfc" class="space-y-4">
+
+            <!-- Paso 1: Pegado de Grafana -->
+            <div id="hfc-paso-pegado" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                        Datos de Grafana (Plano · Equipo · Clientes Afectados · INC) *
+                    </label>
+                    <textarea id="hfc_raw_textarea" name="grafana_paste" rows="5"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+                        placeholder="Pegue la tabla copiada de Grafana aquí..."
+                        oninput="procesarTextoGrafanaLive()"></textarea>
+                </div>
+
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-xs text-slate-500">Al pegar, se detectarán automáticamente los anillos y las
+                        nuevas incidencias.</span>
+                    <button type="button" onclick="procesarTextoGrafanaLive(true)"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Detectar y Analizar Anillos</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Paso 2: Detección y Configuración de Incidencia -->
+            <div id="hfc-paso-tabla" class="hidden space-y-4 pt-3 border-t border-slate-800">
+
+                <!-- Panel de Agrupación por Anillo / Troncal (Cuando hay coincidencia) -->
+                <div id="panel-anillo-container"
+                    class="bg-indigo-950/30 border border-indigo-800/60 rounded-xl p-4 space-y-3">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="p-1.5 bg-indigo-600/30 text-indigo-400 rounded-lg text-sm">
+                                <i class="fa-solid fa-circle-nodes"></i>
+                            </span>
+                            <div>
+                                <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                                    Coincidencia de Anillo Detectada: <span id="anillo-detectado-badge"
+                                        class="text-white">Anillo 7</span>
+                                </h4>
+                                <p class="text-[11px] text-slate-400" id="anillo-subtext">Comparten equipo y troncal de
+                                    distribución.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label id="fusion-toggle-container"
+                                class="hidden items-center space-x-2 text-xs font-semibold text-slate-200 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer">
+                                <input type="checkbox" id="chk-fusionar-anillos"
+                                    onchange="modoFusionado = this.checked; renderGruposUI();"
+                                    class="accent-indigo-600">
+                                <span>Fusionar en 1 sola Incidencia</span>
+                            </label>
+                            <label
+                                class="flex items-center space-x-2 text-xs font-semibold text-slate-200 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer">
+                                <input type="checkbox" id="chk-agrupar-anillo" name="es_masiva_anillo" value="1" checked
+                                    onchange="toggleModoAgrupado(this.checked)" class="accent-indigo-600">
+                                <span>Agrupar en Incidencia(s) Masiva(s)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Campos del Modo Agrupado Masivo de Anillo: una tarjeta por cada anillo detectado (o 1 sola si se fusiona) -->
+                    <div id="campos-modo-agrupado" class="space-y-3 pt-2">
+                        <div id="grupos-anillo-container" class="space-y-3">
+                            <!-- Generado dinámicamente: 1 tarjeta por anillo, o 1 tarjeta fusionada -->
+                        </div>
+                        <p class="text-[11px] text-slate-500">
+                            <i class="fa-solid fa-circle-info mr-1"></i>
+                            Desmarque un nodo dentro de una tarjeta para excluirlo de esa Incidencia Masiva; se
+                            registrará como incidencia individual.
+                        </p>
+                        <input type="hidden" id="hidden_grupos_json" name="grupos_json" value="">
+                    </div>
+                </div>
+
+                <!-- Modo Desagrupado / Tabla por Nodo -->
+                <div id="panel-tabla-individual" class="hidden space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            Registro Individual por Nodo (<span id="hfc-count">0</span>)
+                        </h4>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[11px] text-slate-400">Asignar a todos:</span>
+                            <select id="global-bosf" onchange="aplicarBosfGlobal(this.value)"
+                                class="bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-200">
+                                <option value="">BOSF Global...</option>
+                                <option value="Cristhian Torres">Cristhian Torres</option>
+                                <option value="Lila Trujillo">Lila Trujillo</option>
+                                <option value="Miguel Barja">Miguel Barja</option>
+                                <option value="Jesús Carrasco">Jesús Carrasco</option>
+                            </select>
+                            <input type="text" id="global-hora" value="{{ hora_actual }}" placeholder="HH:MM"
+                                onchange="aplicarHoraGlobal(this.value)"
+                                class="w-16 bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-200 font-mono text-center">
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border border-slate-800 rounded-xl">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead
+                                class="bg-slate-900 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">INC</th>
+                                    <th class="p-3">EQUIPO / PLANO</th>
+                                    <th class="p-3 text-center">Afectados</th>
+                                    <th class="p-3">BOSF</th>
+                                    <th class="p-3">HORA</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hfc-tbody" class="divide-y divide-slate-800 bg-slate-950 font-mono">
+                                <!-- Filas generadas dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+                <button type="button" onclick="cerrarModal('modal-hfc')"
+                    class="bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-semibold px-4 py-2.5 rounded-lg transition">Cancelar</button>
+                <button type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-6 py-2.5 rounded-lg shadow-lg transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i>
+                    <span>Confirmar y Guardar Incidencia</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 2: CARGA FTTH                                      -->
+<!-- ======================================================== -->
+<div id="modal-ftth"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="text-base font-bold text-teal-300 flex items-center">
+                <i class="fa-solid fa-network-wired text-teal-400 mr-2"></i>Carga de Alarmas FTTH
+            </h3>
+            <button onclick="cerrarModal('modal-ftth')" class="text-slate-400 hover:text-white"><i
+                    class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex bg-slate-900 rounded-lg p-1 gap-1">
+            <button id="tab-excel" onclick="switchFtthTab('excel')"
+                class="flex-1 py-2 text-xs font-semibold rounded-md transition flex items-center justify-center gap-1.5 bg-teal-700 text-white">
+                <i class="fa-solid fa-file-excel"></i>Subir Excel
+            </button>
+            <button id="tab-paste" onclick="switchFtthTab('paste')"
+                class="flex-1 py-2 text-xs font-semibold rounded-md transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-paste"></i>Pegar Texto
+            </button>
+        </div>
+
+        <form action="/carga-ftth" method="POST" enctype="multipart/form-data" class="space-y-4" id="form-ftth">
+
+            <!-- Panel Excel -->
+            <div id="panel-ftth-excel">
+                <div id="ftth-drop-zone"
+                    class="border-2 border-dashed border-slate-700 hover:border-teal-600 rounded-xl p-7 text-center cursor-pointer transition group"
+                    onclick="document.getElementById('ftth_xlsx_input').click()"
+                    ondragover="event.preventDefault(); this.classList.add('border-teal-500','bg-teal-950/20')"
+                    ondragleave="this.classList.remove('border-teal-500','bg-teal-950/20')"
+                    ondrop="handleFtthDrop(event)">
+                    <i
+                        class="fa-solid fa-file-arrow-up text-3xl text-teal-500 mb-3 block group-hover:scale-110 transition-transform"></i>
+                    <p class="text-sm font-semibold text-slate-300">Arrastra el archivo Excel aquí</p>
+                    <p class="text-xs text-slate-500 mt-1">o haz clic para seleccionar</p>
+                    <p class="text-[11px] text-slate-600 mt-2">Formatos: .xlsx, .xls</p>
+                    <p id="ftth-file-name" class="text-xs font-mono text-teal-400 mt-3 hidden"></p>
+                </div>
+                <input type="file" id="ftth_xlsx_input" name="ftth_xlsx" accept=".xlsx,.xls" class="hidden"
+                    onchange="mostrarNombreArchivo(this)">
+            </div>
+
+            <!-- Panel Pegar Texto -->
+            <div id="panel-ftth-paste" class="hidden">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    <i class="fa-solid fa-clipboard mr-1 text-teal-400"></i>Pegar datos de Huawei NCE / iManager
+                </label>
+                <textarea name="ftth_paste" id="ftth_paste_area" rows="7"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono leading-relaxed"
+                    placeholder="Selecciona las alarmas en el gestor y pégalas aquí (Ctrl+V)&#10;&#10;Ejemplo:&#10;Operation	Comments	Arrived On (ST)	...	User Label	...	Alarm Source	Other Information&#10;		2026-08-30 23:54:54	...	PISH010-F_TR2F14	...	oltSechura01	...ONTs=1..."></textarea>
+                <p class="text-[10px] text-slate-600 mt-1">El sistema detecta automáticamente planos, ONTs y OLT desde
+                    el texto copiado.</p>
+            </div>
+
+            <!-- Info -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5 text-[10px] text-slate-500">
+                <i class="fa-solid fa-circle-info text-teal-500 mr-1"></i>
+                Requiere columnas <strong class="text-slate-400">User Label</strong> y <strong
+                    class="text-slate-400">Other Information</strong> de Huawei NCE.
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-1">
+                <button type="button" onclick="cerrarModal('modal-ftth')"
+                    class="bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-semibold px-4 py-2.5 rounded-lg transition">Cancelar</button>
+                <button type="submit"
+                    class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-5 py-2.5 rounded-lg shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                    <span>Analizar y Procesar</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ======================================================== -->
+<!-- MODAL 3: CARGA MANUAL                                    -->
+<!-- ======================================================== -->
+
+<div id="modal-manual"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div
+        class="bg-slate-950 border border-slate-800 rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="text-base font-bold text-slate-100 flex items-center">
+                <i class="fa-solid fa-pen-to-square text-indigo-400 mr-2"></i>Registro Manual de Incidencia
+            </h3>
+            <button onclick="cerrarModal('modal-manual')" class="text-slate-400 hover:text-white"><i
+                    class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <form action="/nueva-averia" method="POST" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">INC / Ticket
+                        *</label>
+                    <input type="text" name="inc" required placeholder="INC000..."
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tecnología
+                        *</label>
+                    <select name="tipo"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                        {% for t in tipos_incidencia %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Hora Avería
+                        (HH:MM)</label>
+                    <input type="text" name="hora_averia" value="{{ hora_actual }}"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Departamento
+                        *</label>
+                    <input type="text" name="departamento" required placeholder="LIMA"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Provincia
+                        *</label>
+                    <input type="text" name="provincia" required placeholder="LIMA"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Distrito
+                        *</label>
+                    <input type="text" name="distrito" required placeholder="SANTIAGO DE SURCO"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tipo de
+                        Falla</label>
+                    <input type="text" name="tipo_falla" value="FALLA DE ENERGIA"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">BOSF
+                        Asignado</label>
+                    <select name="bosf"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                        <option value="">Seleccione personal...</option>
+                        {% for p in personal_list %}
+                        <option value="{{ p.nombre }}">{{ p.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">PEXT
+                        Asignado</label>
+                    <input type="text" name="pext" placeholder="Cuadrilla / Empresa"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Servicios
+                    Afectados *</label>
+                <div class="flex flex-wrap gap-4 text-xs text-slate-300">
+                    {% for s in servicios %}
+                    <label
+                        class="flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded border border-slate-800 cursor-pointer">
+                        <input type="checkbox" name="servicios" value="{{ s }}" checked class="accent-indigo-600">
+                        <span>{{ s }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Observaciones /
+                    Plano / Clientes</label>
+                <textarea name="observaciones" rows="3"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+                    placeholder="Plano: LMCA001&#10;Clientes: 120"></textarea>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" onclick="cerrarModal('modal-manual')"
+                    class="bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-semibold px-4 py-2.5 rounded-lg transition">Cancelar</button>
+                <button type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-5 py-2.5 rounded-lg shadow transition">
+                    <i class="fa-solid fa-plus mr-1.5"></i> Crear Incidencia
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script id="activas-hfc-data" type="application/json">
+    {{ activas_hfc_json | safe }}
+</script>
+
+<script>
+    const BOSF_OPTIONS = [
+        "Cristhian Torres",
+        "Lila Trujillo",
+        "Miguel Barja",
+        "Jesús Carrasco"
+    ];
+
+    const ACTIVAS_HFC = JSON.parse(document.getElementById('activas-hfc-data')?.textContent || '[]');
+
+    function abrirModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function cerrarModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function mostrarNombreArchivo(input) {
+        const label = document.getElementById('ftth-file-name');
+        if (input.files && input.files[0]) {
+            label.textContent = '📄 ' + input.files[0].name;
+            label.classList.remove('hidden');
+            document.getElementById('ftth-drop-zone').classList.add('border-teal-500', 'bg-teal-950/20');
+        }
+    }
+
+    function handleFtthDrop(event) {
+        event.preventDefault();
+        const zone = document.getElementById('ftth-drop-zone');
+        zone.classList.remove('border-teal-500', 'bg-teal-950/20');
+        const files = event.dataTransfer.files;
+        if (files.length > 0) {
+            const input = document.getElementById('ftth_xlsx_input');
+            input.files = files;
+            mostrarNombreArchivo(input);
+        }
+    }
+
+    function switchFtthTab(tab) {
+        const panelExcel = document.getElementById('panel-ftth-excel');
+        const panelPaste = document.getElementById('panel-ftth-paste');
+        const btnExcel = document.getElementById('tab-excel');
+        const btnPaste = document.getElementById('tab-paste');
+        const activeClass = ['bg-teal-700', 'text-white'];
+        const inactiveClass = ['text-slate-400', 'hover:text-slate-200'];
+        if (tab === 'excel') {
+            panelExcel.classList.remove('hidden');
+            panelPaste.classList.add('hidden');
+            btnExcel.classList.add(...activeClass); btnExcel.classList.remove(...inactiveClass);
+            btnPaste.classList.remove(...activeClass); btnPaste.classList.add(...inactiveClass);
+        } else {
+            panelExcel.classList.add('hidden');
+            panelPaste.classList.remove('hidden');
+            btnPaste.classList.add(...activeClass); btnPaste.classList.remove(...inactiveClass);
+            btnExcel.classList.remove(...activeClass); btnExcel.classList.add(...inactiveClass);
+        }
+    }
+
+    // Estado global del flujo de detección de Anillos HFC
+    let nuevasActuales = [];       // todas las filas nuevas detectadas del pegado de Grafana
+    let excluidosSet = new Set();  // planos excluidos de toda Incidencia Masiva -> van individuales
+    let modoFusionado = false;     // true = combinar todos los anillos en 1 sola incidencia
+    let ultimoAnalisis = null;     // última respuesta de /api/analizar-hfc sobre los nodos incluidos
+
+    function toggleModoAgrupado(agrupar) {
+        const panelIndividual = document.getElementById("panel-tabla-individual");
+        if (agrupar) {
+            actualizarAnalisisAnillo();
+        } else {
+            document.getElementById("campos-modo-agrupado").classList.add("hidden");
+            panelIndividual.classList.remove("hidden");
+            renderTablaIndividual();
+        }
+    }
+
+    function toggleExclusion(plano, incluido) {
+        if (incluido) {
+            excluidosSet.delete(plano);
+        } else {
+            excluidosSet.add(plano);
+        }
+        actualizarAnalisisAnillo();
+    }
+
+    async function actualizarAnalisisAnillo() {
+        const panelAnillo = document.getElementById("panel-anillo-container");
+        const incluidos = nuevasActuales.filter(r => !excluidosSet.has(r.plano));
+
+        if (incluidos.length === 0) {
+            panelAnillo.classList.add("hidden");
+            document.getElementById("chk-agrupar-anillo").checked = false;
+            document.getElementById("campos-modo-agrupado").classList.add("hidden");
+            document.getElementById("panel-tabla-individual").classList.remove("hidden");
+            ultimoAnalisis = null;
+            renderTablaIndividual();
+            return;
+        }
+
+        try {
+            const resp = await fetch("/api/analizar-hfc", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rows: incluidos })
+            });
+            ultimoAnalisis = await resp.json();
+        } catch (err) {
+            console.error("Error analizando anillo:", err);
+            document.getElementById("chk-agrupar-anillo").checked = false;
+            toggleModoAgrupado(false);
+            return;
+        }
+
+        const gruposReales = (ultimoAnalisis.grupos || []).filter(g => g.es_ring_real);
+
+        // Los nodos sin anillo real detectado nunca pueden ir en una masiva: se excluyen automáticamente
+        (ultimoAnalisis.grupos || []).filter(g => !g.es_ring_real).forEach(g => {
+            g.nodos.forEach(n => excluidosSet.add(n.plano));
+        });
+
+        if (gruposReales.length === 0) {
+            panelAnillo.classList.add("hidden");
+            document.getElementById("chk-agrupar-anillo").checked = false;
+            document.getElementById("campos-modo-agrupado").classList.add("hidden");
+            document.getElementById("panel-tabla-individual").classList.remove("hidden");
+            renderTablaIndividual();
+            return;
+        }
+
+        panelAnillo.classList.remove("hidden");
+        document.getElementById("chk-agrupar-anillo").checked = true;
+        document.getElementById("campos-modo-agrupado").classList.remove("hidden");
+        document.getElementById("panel-tabla-individual").classList.add("hidden");
+        document.getElementById("fusion-toggle-container").classList.toggle("hidden", gruposReales.length < 2);
+        document.getElementById("fusion-toggle-container").classList.toggle("flex", gruposReales.length >= 2);
+
+        renderGruposUI();
+        renderTablaIndividual();
+    }
+
+    function renderGruposUI() {
+        if (!ultimoAnalisis) return;
+        const gruposReales = (ultimoAnalisis.grupos || []).filter(g => g.es_ring_real);
+        const container = document.getElementById("grupos-anillo-container");
+        container.innerHTML = "";
+
+        if (gruposReales.length === 0) return;
+
+        if (modoFusionado || gruposReales.length === 1) {
+            document.getElementById("anillo-detectado-badge").innerText = ultimoAnalisis.anillo_str || "Anillo de Distribución";
+            document.getElementById("anillo-subtext").innerText = `Comparten equipo: ${ultimoAnalisis.cmts_str || 'OLT/CMTS Central'} · ${gruposReales.reduce((n, g) => n + g.nodos.length, 0)} Nodos Afectados`;
+            container.appendChild(renderGrupoCard({
+                anillo_str: ultimoAnalisis.anillo_str,
+                cmts_str: ultimoAnalisis.cmts_str,
+                distritos_str: ultimoAnalisis.distritos_str,
+                distritos_stats: ultimoAnalisis.distritos_stats,
+                detalle_distritos: ultimoAnalisis.detalle_distritos,
+                total_afectados: ultimoAnalisis.total_afectados,
+                planos_str: ultimoAnalisis.planos_str,
+                primer_inc: ultimoAnalisis.primer_inc,
+                nodos: gruposReales.flatMap(g => g.nodos)
+            }, true));
+        } else {
+            document.getElementById("anillo-detectado-badge").innerText = `${gruposReales.length} Anillos Separados`;
+            document.getElementById("anillo-subtext").innerText = "Cada anillo se registrará como una Incidencia Masiva independiente (puede fusionarlos arriba).";
+            gruposReales.forEach(g => container.appendChild(renderGrupoCard(g, false)));
+        }
+    }
+
+    function renderGrupoCard(grupo, esFusion) {
+        const horaActual = document.getElementById("global-hora") ? document.getElementById("global-hora").value : "{{ hora_actual }}";
+        const card = document.createElement("div");
+        card.className = "grupo-card bg-slate-900/90 border border-slate-800 rounded-lg p-3 space-y-3";
+        const planosStr = grupo.planos_str || (grupo.nodos || []).map(n => `${n.plano} (${n.clientes})`).join(", ");
+        card.dataset.anilloStr = grupo.anillo_str || "Anillo Principal";
+        card.dataset.distritosStr = grupo.distritos_str || "LIMA";
+        card.dataset.detalleDistritos = grupo.detalle_distritos || "";
+        card.dataset.planosStr = planosStr;
+        card.dataset.totalAfectados = grupo.total_afectados || 0;
+
+        let bosfOptionsHtml = `<option value="">Seleccione BOSF...</option>`;
+        BOSF_OPTIONS.forEach(b => { bosfOptionsHtml += `<option value="${b}">${b}</option>`; });
+
+        let nodosHtml = "";
+        (grupo.nodos || []).forEach(n => {
+            nodosHtml += `
+            <label class="flex items-center justify-between text-[11px] font-mono bg-slate-950/60 border border-slate-800 rounded px-2 py-1">
+                <span class="text-slate-300">${n.plano} <span class="text-slate-500">(${n.clientes} cli.)</span></span>
+                <span class="flex items-center space-x-1.5 text-slate-400">
+                    <span>Incluir</span>
+                    <input type="checkbox" checked onchange="toggleExclusion('${n.plano}', this.checked)" class="accent-indigo-600">
+                </span>
+            </label>`;
+        });
+
+        let distStatsHtml = "";
+        for (const [dName, dStat] of Object.entries(grupo.distritos_stats || {})) {
+            distStatsHtml += `
+            <div class="flex justify-between items-center py-0.5 border-b border-slate-800/50">
+                <span class="text-indigo-300 font-bold">${dName}:</span>
+                <span>*HFC (${dStat.nodos} NODOS): <strong class="text-white">${dStat.afectados}</strong> clientes de ${dStat.total_distrito} (${dStat.porcentaje}%)</span>
+            </div>`;
+        }
+
+        const incValue = (grupo.primer_inc && grupo.primer_inc !== "EN PROCESO") ? grupo.primer_inc : "";
+
+        card.innerHTML = `
+        <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider">
+            ${esFusion ? "Incidencia Masiva Combinada" : ("Anillo: " + (grupo.anillo_str || ""))}
+            <span class="text-slate-500 font-normal normal-case ml-1">· ${(grupo.nodos || []).length} nodos</span>
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ticket Asignado (INC)</label>
+                <input type="text" class="grp-inc w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-indigo-300 font-mono focus:border-indigo-500" value="${incValue}" placeholder="INC000...">
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tipo de Falla</label>
+                <select class="grp-tipo w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:border-indigo-500">
+                    <option value="Corte de fibra" selected>Corte de fibra</option>
+                    <option value="Corte de energía no programado">Corte de energía no programado</option>
+                    <option value="Corte de energía programado">Corte de energía programado</option>
+                    <option value="Caída de nodo">Caída de nodo</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">BOSF Asignado</label>
+                <select class="grp-bosf w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:border-indigo-500">
+                    ${bosfOptionsHtml}
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Hora Avería (HH:MM)</label>
+                <input type="text" class="grp-hora w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 font-mono text-center focus:border-indigo-500" value="${horaActual}">
+            </div>
+        </div>
+        <div class="bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-xs space-y-1">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Impacto por Distrito(s):</span>
+            <div class="text-slate-300 space-y-1 font-mono text-[11px]">${distStatsHtml}</div>
+        </div>
+        <div class="space-y-1">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nodos en esta incidencia:</span>
+            <div class="space-y-1">${nodosHtml}</div>
+        </div>
+    `;
+        return card;
+    }
+
+    function renderTablaIndividual() {
+        const tbody = document.getElementById("hfc-tbody");
+        const horaActual = document.getElementById("global-hora") ? document.getElementById("global-hora").value : "{{ hora_actual }}";
+        const enModoMasiva = document.getElementById("chk-agrupar-anillo").checked;
+        const filas = enModoMasiva ? nuevasActuales.filter(r => excluidosSet.has(r.plano)) : nuevasActuales;
+
+        document.getElementById("hfc-count").innerText = filas.length;
+        tbody.innerHTML = "";
+
+        let bosfOptionsHtml = `<option value="">Seleccione BOSF...</option>`;
+        BOSF_OPTIONS.forEach(b => { bosfOptionsHtml += `<option value="${b}">${b}</option>`; });
+
+        filas.forEach((r) => {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-900/50 transition";
+            tr.innerHTML = `
+            <td class="p-2.5">
+                <input type="text" name="inc_row[]" value="${r.inc}" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-indigo-300 font-mono focus:border-indigo-500">
+                <input type="hidden" name="plano_row[]" value="${r.plano}">
+            </td>
+            <td class="p-2.5">
+                <input type="text" name="equipo_row[]" value="${r.equipo}" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 font-mono focus:border-indigo-500">
+                <span class="text-[10px] text-slate-500 block mt-0.5">Plano: ${r.plano}</span>
+            </td>
+            <td class="p-2.5 text-center">
+                <input type="number" name="clientes_row[]" value="${r.clientes}" class="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 text-center font-mono focus:border-indigo-500">
+            </td>
+            <td class="p-2.5">
+                <select name="bosf_row[]" class="row-bosf w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 focus:border-indigo-500">
+                    ${bosfOptionsHtml}
+                </select>
+            </td>
+            <td class="p-2.5">
+                <input type="text" name="hora_row[]" value="${horaActual}" placeholder="HH:MM" class="row-hora w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 font-mono text-center focus:border-indigo-500">
+            </td>
+        `;
+            tbody.appendChild(tr);
+        });
+
+        if (enModoMasiva && filas.length > 0) {
+            const trNotice = document.createElement("tr");
+            trNotice.innerHTML = `
+            <td colspan="5" class="p-2 text-center bg-indigo-950/30 border-t border-indigo-800/40 text-indigo-300 text-[11px]">
+                <i class="fa-solid fa-circle-info mr-1"></i>
+                ${filas.length} nodo(s) excluido(s) de la Masiva: se registrarán como incidencias individuales.
+            </td>
+        `;
+            tbody.appendChild(trNotice);
+        } else if (filas.length === 0 && !enModoMasiva) {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="p-6 text-center text-slate-500 text-xs">No hay nodos por registrar individualmente.</td>
+            </tr>
+        `;
+        }
+    }
+
+    document.getElementById("form-hfc").addEventListener("submit", function (e) {
+        if (nuevasActuales.length === 0) {
+            // No hay nuevas averías que registrar; permitir el envío para procesar cierres de recuperadas
+            const chk = document.getElementById("chk-agrupar-anillo");
+            if (chk) chk.checked = false;
+            const hiddenMasiva = document.getElementById("hidden_es_masiva");
+            if (hiddenMasiva) hiddenMasiva.value = "0";
+            const hiddenGrupos = document.getElementById("hidden_grupos_json");
+            if (hiddenGrupos) hiddenGrupos.value = "[]";
+            return;
+        }
+
+        if (document.getElementById("chk-agrupar-anillo").checked) {
+            const grupos = [];
+            document.querySelectorAll("#grupos-anillo-container .grupo-card").forEach(card => {
+                grupos.push({
+                    inc_principal: card.querySelector(".grp-inc").value.trim(),
+                    tipo_falla: card.querySelector(".grp-tipo").value,
+                    bosf: card.querySelector(".grp-bosf").value,
+                    hora: card.querySelector(".grp-hora").value,
+                    anillo_str: card.dataset.anilloStr,
+                    distritos_str: card.dataset.distritosStr,
+                    detalle_distritos: card.dataset.detalleDistritos,
+                    planos_str: card.dataset.planosStr,
+                    total_afectados: card.dataset.totalAfectados,
+                });
+            });
+            if (grupos.length === 0 && excluidosSet.size === 0) {
+                e.preventDefault();
+                alert("No hay ninguna Incidencia Masiva configurada. Incluya al menos un nodo en un anillo, o desmarque 'Agrupar en Incidencia(s) Masiva(s)'.");
+                return;
+            }
+            document.getElementById("hidden_grupos_json").value = JSON.stringify(grupos);
+        }
+    });
+
+    async function procesarTextoGrafanaLive(force = false) {
+        const textarea = document.getElementById("hfc_raw_textarea");
+        if (!textarea) return;
+        const text = textarea.value.trim();
+        const pasoTabla = document.getElementById("hfc-paso-tabla");
+        const tbody = document.getElementById("hfc-tbody");
+        const horaActual = document.getElementById("global-hora") ? document.getElementById("global-hora").value : "{{ hora_actual }}";
+
+        if (!text) {
+            if (force) alert("Por favor pegue los datos copiados de Grafana en el cuadro superior.");
+            pasoTabla.classList.add("hidden");
+            return;
+        }
+
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        const allRows = [];
+
+        // Detectar si el texto viene tabulado o con múltiples espacios
+        let isTabular = lines.some(l => l.includes("\t") || /\s{2,}/.test(l));
+
+        if (isTabular) {
+            lines.forEach(line => {
+                const parts = line.split(/\t|\s{2,}/).map(p => p.trim()).filter(p => p.length > 0);
+                if (parts.length >= 3) {
+                    const p0 = parts[0].toUpperCase();
+                    if (["PLANO", "EQUIPO", "AFECTADOS", "INCIDENT_ID", "AFECTACIÓN", "AFECTACION"].some(h => p0.includes(h))) return;
+                    const plano = parts[0];
+                    const equipo = parts[1];
+                    const clientes = parseInt(parts[2]) || 0;
+                    const inc = parts[3] || "EN PROCESO";
+                    allRows.push({ plano, equipo, clientes, inc });
+                }
+            });
+        } else {
+            // Columna única
+            const cleanValues = lines.filter(l => {
+                const up = l.toUpperCase();
+                return !["PLANO", "EQUIPO", "AFECTADOS", "INCIDENT_ID", "AFECTACIÓN", "AFECTACION"].some(h => up.includes(h));
+            });
+            for (let i = 0; i < cleanValues.length; i += 4) {
+                const chunk = cleanValues.slice(i, i + 4);
+                if (chunk.length >= 3) {
+                    const plano = chunk[0];
+                    const equipo = chunk[1];
+                    const clientes = parseInt(chunk[2]) || 0;
+                    const inc = chunk[3] || "EN PROCESO";
+                    allRows.push({ plano, equipo, clientes, inc });
+                }
+            }
+        }
+
+        if (allRows.length === 0) {
+            if (force) alert("No se detectaron filas válidas de Grafana. Verifique el contenido pegado.");
+            pasoTabla.classList.add("hidden");
+            return;
+        }
+
+        // Filtrar estrictamente solo las NUEVAS (que no estén ya activas en el NOC)
+        const nuevas = [];
+        const yaActivas = [];
+
+        allRows.forEach(r => {
+            const esActiva = ACTIVAS_HFC.some(a => {
+                if (r.inc && r.inc !== "EN PROCESO" && a.inc && a.inc === r.inc) return true;
+                if (a.plano && a.plano.toUpperCase() === r.plano.toUpperCase()) return true;
+                return false;
+            });
+
+            if (esActiva) {
+                yaActivas.push(r);
+            } else {
+                nuevas.push(r);
+            }
+        });
+
+        // Detectar averías recuperadas / desaparecidas de Grafana
+        const planosEnGrafana = new Set(allRows.map(r => r.plano.toUpperCase()));
+        const desaparecidas = ACTIVAS_HFC.filter(a => a.plano && !planosEnGrafana.has(a.plano.toUpperCase()));
+
+        // Reiniciar estado de exclusiones/fusión para este nuevo pegado
+        nuevasActuales = nuevas;
+        excluidosSet = new Set();
+        modoFusionado = false;
+        const fusionChk = document.getElementById("chk-fusionar-anillos");
+        if (fusionChk) fusionChk.checked = false;
+
+        tbody.innerHTML = "";
+
+        if (nuevas.length === 0) {
+            document.getElementById("panel-anillo-container").classList.add("hidden");
+            const camposModo = document.getElementById("campos-modo-agrupado");
+            if (camposModo) camposModo.classList.add("hidden");
+            document.getElementById("panel-tabla-individual").classList.remove("hidden");
+            document.getElementById("hfc-count").innerText = "0";
+            const chkAgrupar = document.getElementById("chk-agrupar-anillo");
+            if (chkAgrupar) chkAgrupar.checked = false;
+            const hiddenMasiva = document.getElementById("hidden_es_masiva");
+            if (hiddenMasiva) hiddenMasiva.value = "0";
+            const hiddenGrupos = document.getElementById("hidden_grupos_json");
+            if (hiddenGrupos) hiddenGrupos.value = "[]";
+            let msgHtml = `
+            <tr>
+                <td colspan="5" class="p-6 text-center text-slate-400">
+                    <i class="fa-solid fa-circle-check text-emerald-400 text-2xl mb-2 block"></i>
+                    <p class="font-semibold text-slate-200">No se detectaron nuevas incidencias</p>
+                    <p class="text-xs text-slate-500 mt-1">Todas las averías pegadas (${allRows.length}) ya se encuentran registradas y activas en el NOC.</p>
+                </td>
+            </tr>
+        `;
+            if (desaparecidas.length > 0) {
+                msgHtml += `
+                <tr>
+                    <td colspan="5" class="p-3 text-center bg-amber-950/30 border-t border-amber-800/40 text-amber-300 text-xs">
+                        <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
+                        Se detectaron <strong>${desaparecidas.length} averías recuperadas</strong> que ya no figuran en Grafana. Al hacer clic en confirmar se abrirá la ventana de cierres.
+                    </td>
+                </tr>
+            `;
+            }
+            tbody.innerHTML = msgHtml;
+            const submitBtnText = document.querySelector("#form-hfc button[type='submit'] span");
+            if (desaparecidas.length > 0) {
+                if (submitBtnText) submitBtnText.innerText = `Procesar Cierres (${desaparecidas.length} recuperadas)`;
+            } else {
+                if (submitBtnText) submitBtnText.innerText = "Confirmar y Guardar Incidencia";
+            }
+        } else {
+            const submitBtnText = document.querySelector("#form-hfc button[type='submit'] span");
+            if (submitBtnText) submitBtnText.innerText = "Confirmar y Guardar Incidencia";
+            await actualizarAnalisisAnillo();
+
+            if (desaparecidas.length > 0) {
+                const trNotice = document.createElement("tr");
+                trNotice.innerHTML = `
+                <td colspan="5" class="p-3 text-center bg-amber-950/30 border-t border-amber-800/40 text-amber-300 text-xs">
+                    <i class="fa-solid fa-triangle-exclamation mr-1.5"></i>
+                    Se detectaron <strong>${desaparecidas.length} averías recuperadas</strong> que ya no figuran en Grafana. Al guardar se abrirá la ventana de cierres.
+                </td>
+            `;
+                tbody.appendChild(trNotice);
+            }
+        }
+
+        pasoTabla.classList.remove("hidden");
+    }
+
+    function aplicarBosfGlobal(val) {
+        if (!val) return;
+        document.querySelectorAll(".row-bosf").forEach(sel => {
+            sel.value = val;
+        });
+    }
+
+    function aplicarHoraGlobal(val) {
+        if (!val) return;
+        document.querySelectorAll(".row-hora").forEach(inp => {
+            inp.value = val;
+        });
+    }
+
+    // Cerrar modales con la tecla ESC
+    window.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            ['modal-hfc', 'modal-ftth', 'modal-manual'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+        }
+    });
+</script>
+{% endblock %}

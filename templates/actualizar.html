@@ -1,0 +1,123 @@
+<!-- templates/actualizar.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3">
+        <a href="/" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-arrow-left text-lg"></i></a>
+        <h2 class="text-xl font-bold">Registrar Estado: {{ inc.inc }}</h2>
+        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-300 rounded-md font-mono">{{ inc.departamento }} / {{ inc.distrito }}</span>
+        {% if es_ftth %}
+        <span class="text-xs px-2 py-0.5 bg-teal-900/60 border border-teal-700 text-teal-300 rounded font-bold">FTTH</span>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Plantillas Rápidas: Top Actualizaciones -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-lg space-y-3">
+            <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center">
+                <i class="fa-solid fa-bolt mr-2"></i>Top Actualizaciones
+            </h4>
+            <div class="flex flex-col space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                {% for item in top_updates %}
+                    <button type="button" onclick="insertarTexto('{{ item | e }}', 'ACTUALIZACION')" class="text-left text-xs bg-slate-900 hover:bg-slate-800 hover:border-indigo-500/50 border border-slate-800 text-slate-300 px-3 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-comment-dots text-slate-500 mr-1.5"></i>{{ item }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Plantillas Rápidas: Top Cierres -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-lg space-y-3">
+            <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center">
+                <i class="fa-solid fa-check-circle mr-2"></i>Top Cierres
+            </h4>
+            <div class="flex flex-col space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                {% for item in top_closures %}
+                    <button type="button" onclick="insertarTexto('{{ item | e }}', 'CIERRE')" class="text-left text-xs bg-slate-900 hover:bg-slate-800 hover:border-emerald-500/50 border border-slate-800 text-slate-300 px-3 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-flag-checkered text-emerald-500/70 mr-1.5"></i>{{ item }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de Envío -->
+    <form action="/actualizar/{{ inc.id }}" method="POST" class="bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tipo de Registro</label>
+                <select id="tipo_actualizacion_select" name="tipo_actualizacion" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                    <option value="ACTUALIZACION">ACTUALIZACIÓN (Sigue abierta)</option>
+                    <option value="CIERRE">CIERRE (Solucionado)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Hora Operativa (HH:MM)</label>
+                <input type="text" name="hora" value="{{ hora_actual }}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+            </div>
+        </div>
+
+        <!-- Campos exclusivos FTTH: Causa Raiz + Correctivo -->
+        {% if es_ftth %}
+        <div class="border border-teal-800/40 bg-teal-950/20 rounded-xl p-4 space-y-3">
+            <p class="text-[11px] font-bold text-teal-400 uppercase tracking-wider">
+                <i class="fa-solid fa-microscope mr-1.5"></i>Diagnóstico FTTH (opcional — solo modifica si aplica)
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Causa Raíz</label>
+                    <select name="causa_raiz" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                        <option value="">-- Sin cambiar --</option>
+                        {% for cr in causas_raiz %}
+                        <option value="{{ cr }}" {% if cr == causa_raiz_actual %}selected{% endif %}>{{ cr }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Correctivo Aplicado</label>
+                    <select name="correctivo" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                        <option value="">-- Sin cambiar --</option>
+                        {% for co in correctivos %}
+                        <option value="{{ co }}" {% if co == correctivo_actual %}selected{% endif %}>{{ co }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% if causa_raiz_actual or correctivo_actual %}
+            <div class="text-[10px] text-slate-500 pt-1">
+                <i class="fa-solid fa-circle-check text-teal-600 mr-1"></i>
+                Registrado: 
+                {% if causa_raiz_actual %}<strong class="text-slate-400">CR: {{ causa_raiz_actual }}</strong>{% endif %}
+                {% if correctivo_actual %} · <strong class="text-slate-400">CO: {{ correctivo_actual }}</strong>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Detalles del avance (Editable)</label>
+            <textarea id="novedad_field" name="novedad" rows="4" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Escriba o seleccione una plantilla rápida para modificarla..."></textarea>
+        </div>
+
+        <div class="flex space-x-3 pt-2">
+            <a href="/" class="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-400 px-4 py-2.5 rounded-lg text-center font-semibold transition text-sm">Cancelar</a>
+            <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg font-semibold transition text-sm">
+                <i class="fa-solid fa-floppy-disk mr-1.5"></i> Guardar Registro
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function insertarTexto(texto, tipo) {
+    const field = document.getElementById("novedad_field");
+    field.value = texto;
+    if (tipo) {
+        document.getElementById("tipo_actualizacion_select").value = tipo;
+    }
+    field.focus();
+}
+</script>
+{% endblock %}

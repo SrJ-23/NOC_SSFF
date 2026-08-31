@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+logs/
+*.log
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Database (optional local DB)
+# noc_monitoreo.db
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1299,13 +1299,16 @@ def actualizar(id_):
 
             # Calcular total HFC del anillo desde la base de datos
             if hfc_nodos or hfc_clientes_afectados:
-                # Extraer OLT del anillo para buscar total en DB
-                olt_m = re.search(r"OLT:\s*([^\n]+)", obs_actualizada, re.IGNORECASE)
-                olt_name = olt_m.group(1).strip() if olt_m else ""
                 hfc_nodos_val = hfc_nodos or "0"
                 hfc_cli_val = hfc_clientes_afectados or "0"
-                # Guardar impacto HFC asociado a esta incidencia FTTH
-                hfc_tag = f"HFC_ADICIONAL: {hfc_nodos_val} nodos, {hfc_cli_val} afectados"
+                # Calcular total HFC del distrito afectado desde planos.parquet
+                distrito_inc = inc.distrito or ""
+                total_hfc_distrito = sum(
+                    p.clientes for p in planos_repo.listar_todos()
+                    if p.tecnologia.upper() == "HFC"
+                    and p.distrito.strip().upper() == distrito_inc.strip().upper()
+                ) if distrito_inc else 0
+                hfc_tag = f"HFC_ADICIONAL: {hfc_nodos_val} nodos, {hfc_cli_val} afectados, total_hfc={total_hfc_distrito}"
                 if re.search(r"HFC_ADICIONAL:", obs_actualizada):
                     obs_actualizada = re.sub(r"HFC_ADICIONAL:[^\n]*", hfc_tag, obs_actualizada)
                 else:

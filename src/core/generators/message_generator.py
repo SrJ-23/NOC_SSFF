@@ -201,16 +201,21 @@ def generate_whatsapp_message(
                     pct = m_stat.group(4)
                     if not pct.endswith("%"):
                         pct += "%"
-                    bloques_distrito_ftth.append(
-                        f"DISTRITO: {d_name}\n*FTTH: {af} clientes de {tot} ({pct})"
-                    )
+                    # Si hay solo 1 distrito, omitir la línea DISTRITO: (ya está en el bloque padre)
+                    if len(raw_dists) == 1:
+                        bloques_distrito_ftth.append(f"*FTTH: {af} clientes de {tot} ({pct})")
+                    else:
+                        bloques_distrito_ftth.append(f"DISTRITO: {d_name}\n*FTTH: {af} clientes de {tot} ({pct})")
                 else:
-                    bloques_distrito_ftth.append(f"DISTRITO: {d_name}\n*{d_stat}")
+                    if len(raw_dists) == 1:
+                        bloques_distrito_ftth.append(f"*{d_stat}")
+                    else:
+                        bloques_distrito_ftth.append(f"DISTRITO: {d_name}\n*{d_stat}")
         else:
             # fallback: usar clientes totales de observaciones
             clientes_m = re.search(r"Clientes:\s*(\d+)", incidencia.observaciones)
             clientes_val = clientes_m.group(1) if clientes_m else "?"
-            bloques_distrito_ftth.append(f"DISTRITO: {distrito.upper()}\n*FTTH: {clientes_val} clientes")
+            bloques_distrito_ftth.append(f"*FTTH: {clientes_val} clientes")
 
         distritos_ftth_texto = "\n \n".join(bloques_distrito_ftth)
 
@@ -219,36 +224,36 @@ def generate_whatsapp_message(
         mbts_adicional_m = re.search(r"MBTS_ADICIONAL:\s*([^\n]+)", incidencia.observaciones)
         corp_adicional_m = re.search(r"CORP_ADICIONAL:\s*([^\n]+)", incidencia.observaciones)
 
-        # Bloque HFC adicional: "X nodos, Y afectados" → formato completo con total de DB
-        hfc_adicional_block = ""
+        # HFC: "X nodos, Y afectados, total_hfc=TOTAL"
+        hfc_adicional_line = ""
         if hfc_adicional_m:
             hfc_raw = hfc_adicional_m.group(1).strip()
-            m_hfc = re.search(r"(\d+)\s*nodos?,\s*(\d+)\s*afectados?", hfc_raw, re.IGNORECASE)
+            m_hfc = re.search(r"(\d+)\s*nodos?,\s*(\d+)\s*afectados?,?\s*(?:total_hfc=(\d+))?", hfc_raw, re.IGNORECASE)
             if m_hfc:
                 n_nodos = m_hfc.group(1)
-                n_afect = m_hfc.group(2)
-                # Buscar total HFC del anillo desde la base de datos mediante el plano de la incidencia
-                hfc_adicional_block = (
-                    f"\n* HFC({n_nodos} nodos): {n_afect} clientes"
-                )
+                n_afect = int(m_hfc.group(2))
+                n_total = int(m_hfc.group(3)) if m_hfc.group(3) else 0
+                if n_total > 0:
+                    pct = round(n_afect / n_total * 100, 2)
+                    hfc_adicional_line = f"\n*HFC ({n_nodos} NODOS): {n_afect} clientes de {n_total} ({pct}%)"
+                else:
+                    hfc_adicional_line = f"\n*HFC ({n_nodos} NODOS): {n_afect} clientes"
 
-        # Bloque MBTS: texto libre con pipes → saltos de línea
+        # MBTS: texto libre directo (sin encabezado auto, solo restaurar pipes → saltos de línea)
         mbts_adicional_block = ""
         if mbts_adicional_m:
             mbts_raw = mbts_adicional_m.group(1).strip().replace(" | ", "\n")
             mbts_adicional_block = (
                 f"\n\n*AFECTACIÓN DE SERVICIOS MÓVILES (MBTS)*\n"
-                f"1. DEPARTAMENTO DE {departamento.upper()}\n"
                 f"{mbts_raw}"
             )
 
-        # Bloque Corporativo: texto libre con pipes → saltos de línea
+        # Corporativo: texto libre directo (sin encabezado auto)
         corp_adicional_block = ""
         if corp_adicional_m:
             corp_raw = corp_adicional_m.group(1).strip().replace(" | ", "\n")
             corp_adicional_block = (
-                f"\n\n*AFECTACIÓN DE SERVICIOS CORPORATIVOS:*\t\n"
-                f"1.DEPARTAMENTO DE {departamento.upper()}\n"
+                f"\n\n*AFECTACIÓN DE SERVICIOS CORPORATIVOS:*\n"
                 f"{corp_raw}"
             )
 
@@ -274,17 +279,19 @@ def generate_whatsapp_message(
                 f"{history_block}"
             )
 
-        # Construir bloque FTTH principal con HFC adicional incrustado si aplica
+        # Bloque FTTH principal: HFC primero, luego FTTH
         if is_closed:
             impacto_block = "*SIN AFECTACION DE SERVICIOS*"
         else:
+            # Separar partes: HFC arriba, FTTH abajo
+            hfc_part = f"{hfc_adicional_line}\n" if hfc_adicional_line else ""
             impacto_block = (
-                f"AFECTACIÓN DE SERVICIOS FIJOS:   \n"
-                f"1. DEPARTAMENTO DE {departamento.upper()}\n"
-                f"PROVINCIA:{provincia.upper()}\n"
-                f"* FTTH: {distritos_ftth_texto}"
-                f"{hfc_adicional_block}"
-            )
+                f"*AFECTACION DE SERVICIOS FIJOS:*   \n"
+                f"1. DEPARTAMENTO DE {departamento.upper()}, PROV. DE {provincia.upper()}\n"
+                f"DISTRITO: {distrito.upper()}\n"
+                f"{hfc_part}"
+                f"{distritos_ftth_texto}"
+            ).rstrip()
 
         msg = (
             f"*NOC SERVICIOS FIJOS*\n"
@@ -302,6 +309,7 @@ def generate_whatsapp_message(
             f"*HORA DE SOLUCION :* {fecha_solucion_str} {hora_solucion_str}h"
         )
         return msg
+
 
 
 

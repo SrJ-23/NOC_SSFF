@@ -122,23 +122,17 @@
                 <p class="text-xs text-slate-400">Monitoreo activo de incidentes de red HFC y FTTH</p>
             </div>
 
-            <!-- Filtros Interactivos HFC / FTTH / TODOS -->
+            <!-- Filtros Interactivos HFC / FTTH (Toggle: si ninguno está activo, muestra todos) -->
             <div class="flex items-center gap-2">
                 <div class="bg-slate-950 border border-slate-800 rounded-xl p-1 flex items-center space-x-1 shadow-inner">
-                    <button type="button" id="filter-btn-all" onclick="filterTech('ALL')"
-                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-indigo-600 text-white shadow">
-                        <i class="fa-solid fa-layer-group"></i>
-                        <span>Todos</span>
-                        <span id="badge-count-all" class="text-[10px] px-1.5 py-0.2 bg-indigo-950/80 rounded-full font-mono">{{ incidencias | length }}</span>
-                    </button>
-                    <button type="button" id="filter-btn-hfc" onclick="filterTech('HFC')"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+                    <button type="button" id="filter-btn-hfc" onclick="toggleFilter('HFC')"
+                        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
                         <i class="fa-solid fa-chart-line text-indigo-400"></i>
                         <span>HFC</span>
                         <span id="badge-count-hfc" class="text-[10px] px-1.5 py-0.2 bg-slate-900 rounded-full font-mono">{{ incidencias | selectattr('obj.tipo.value', 'equalto', 'HFC') | list | length }}</span>
                     </button>
-                    <button type="button" id="filter-btn-ftth" onclick="filterTech('FTTH')"
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+                    <button type="button" id="filter-btn-ftth" onclick="toggleFilter('FTTH')"
+                        class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
                         <i class="fa-solid fa-network-wired text-teal-400"></i>
                         <span>FTTH</span>
                         <span id="badge-count-ftth" class="text-[10px] px-1.5 py-0.2 bg-slate-900 rounded-full font-mono">{{ incidencias | selectattr('obj.tipo.value', 'equalto', 'FTTH') | list | length }}</span>
@@ -195,19 +189,30 @@
                                 </span>
                                 {% endif %}
 
-                                <!-- SOLO PARA FTTH: Mostrar plano(s) y anillo/troncal -->
+                                <!-- SOLO PARA FTTH: si > 2 planos solo troncal/anillo, si <= 2 muestra planos -->
                                 {% if inc.obj.tipo.value == 'FTTH' %}
-                                    {% if inc.planos_str %}
-                                    <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-teal-950/80 border border-teal-700/80 text-teal-300 flex items-center gap-1.5 shadow-sm">
-                                        <i class="fa-solid fa-network-wired text-[11px] text-teal-400"></i>
-                                        <span>Plano{% if inc.planos_count > 1 %}s ({{ inc.planos_count }}){% endif %}: <strong class="text-white">{{ inc.planos_str }}</strong></span>
-                                    </span>
-                                    {% endif %}
-                                    {% if inc.olt_troncal %}
-                                    <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-amber-950/80 border border-amber-700/80 text-amber-300 flex items-center gap-1.5 shadow-sm">
-                                        <i class="fa-solid fa-server text-[11px] text-amber-400"></i>
-                                        <span>Troncal/OLT: <strong class="text-white">{{ inc.olt_troncal }}</strong></span>
-                                    </span>
+                                    {% if inc.planos_count > 2 %}
+                                        <!-- Más de 2 planos: Se muestra SOLO la troncal o anillo -->
+                                        {% if inc.olt_troncal %}
+                                        <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-amber-950/80 border border-amber-700/80 text-amber-300 flex items-center gap-1.5 shadow-sm">
+                                            <i class="fa-solid fa-server text-[11px] text-amber-400"></i>
+                                            <span>Troncal/OLT: <strong class="text-white">{{ inc.olt_troncal }}</strong></span>
+                                        </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <!-- 1 o 2 planos: Muestra los planos y troncal si existe -->
+                                        {% if inc.planos_str %}
+                                        <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-teal-950/80 border border-teal-700/80 text-teal-300 flex items-center gap-1.5 shadow-sm">
+                                            <i class="fa-solid fa-network-wired text-[11px] text-teal-400"></i>
+                                            <span>Plano{% if inc.planos_count > 1 %}s{% endif %}: <strong class="text-white">{{ inc.planos_str }}</strong></span>
+                                        </span>
+                                        {% endif %}
+                                        {% if inc.olt_troncal %}
+                                        <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-amber-950/80 border border-amber-700/80 text-amber-300 flex items-center gap-1.5 shadow-sm">
+                                            <i class="fa-solid fa-server text-[11px] text-amber-400"></i>
+                                            <span>Troncal: <strong class="text-white">{{ inc.olt_troncal }}</strong></span>
+                                        </span>
+                                        {% endif %}
                                     {% endif %}
                                 {% endif %}
 
@@ -295,39 +300,46 @@
 </div>
 
 <script>
-    // Filtro interactivo HFC / FTTH / TODOS
-    function filterTech(tech) {
+    // Filtro interactivo HFC / FTTH (Toggle: si ninguno está activo, muestra todos)
+    let currentFilter = null; // null = TODOS, 'HFC' = solo HFC, 'FTTH' = solo FTTH
+
+    function toggleFilter(tech) {
+        if (currentFilter === tech) {
+            // Si se vuelve a presionar el botón activo, se desactiva y muestra TODOS
+            currentFilter = null;
+        } else {
+            currentFilter = tech;
+        }
+
         const cards = document.querySelectorAll('.incident-card');
         const emptyState = document.getElementById('filter-empty-state');
         let visibleCount = 0;
 
-        // Actualizar estilos de los botones
-        const btnAll = document.getElementById('filter-btn-all');
         const btnHfc = document.getElementById('filter-btn-hfc');
         const btnFtth = document.getElementById('filter-btn-ftth');
 
-        const activeClasses = ['bg-indigo-600', 'text-white', 'shadow'];
-        const inactiveClasses = ['text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-900'];
+        const activeHfcClasses = ['bg-indigo-600', 'text-white', 'shadow', 'border-indigo-500'];
+        const activeFtthClasses = ['bg-teal-600', 'text-white', 'shadow', 'border-teal-500'];
+        const inactiveClasses = ['text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-900', 'border-transparent'];
 
-        [btnAll, btnHfc, btnFtth].forEach(btn => {
-            btn.classList.remove(...activeClasses);
-            btn.classList.add(...inactiveClasses);
-        });
+        // Resetear botones a inactivos
+        btnHfc.classList.remove(...activeHfcClasses);
+        btnHfc.classList.add(...inactiveClasses);
+        btnFtth.classList.remove(...activeFtthClasses);
+        btnFtth.classList.add(...inactiveClasses);
 
-        if (tech === 'ALL') {
-            btnAll.classList.add(...activeClasses);
-            btnAll.classList.remove(...inactiveClasses);
-        } else if (tech === 'HFC') {
-            btnHfc.classList.add(...activeClasses);
+        if (currentFilter === 'HFC') {
             btnHfc.classList.remove(...inactiveClasses);
-        } else if (tech === 'FTTH') {
-            btnFtth.classList.add(...activeClasses);
+            btnHfc.classList.add(...activeHfcClasses);
+        } else if (currentFilter === 'FTTH') {
             btnFtth.classList.remove(...inactiveClasses);
+            btnFtth.classList.add(...activeFtthClasses);
         }
 
+        // Filtrar tarjetas
         cards.forEach(card => {
             const cardTech = card.getAttribute('data-tech');
-            if (tech === 'ALL' || cardTech === tech) {
+            if (currentFilter === null || cardTech === currentFilter) {
                 card.style.display = 'flex';
                 visibleCount++;
             } else {

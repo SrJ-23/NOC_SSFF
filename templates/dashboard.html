@@ -1081,7 +1081,9 @@
                     const plano = parts[0];
                     const equipo = parts[1];
                     const clientes = parseInt(parts[2]) || 0;
-                    const inc = parts[3] || "EN PROCESO";
+                    const inc = parts[3] ? parts[3].trim() : "";
+                    // La columna INCIDENT_ID debe iniciar obligatoriamente con "INC"
+                    if (!inc.toUpperCase().startsWith("INC")) return;
                     allRows.push({ plano, equipo, clientes, inc });
                 }
             });
@@ -1097,14 +1099,16 @@
                     const plano = chunk[0];
                     const equipo = chunk[1];
                     const clientes = parseInt(chunk[2]) || 0;
-                    const inc = chunk[3] || "EN PROCESO";
+                    const inc = chunk[3] ? chunk[3].trim() : "";
+                    // La columna INCIDENT_ID debe iniciar obligatoriamente con "INC"
+                    if (!inc.toUpperCase().startsWith("INC")) continue;
                     allRows.push({ plano, equipo, clientes, inc });
                 }
             }
         }
 
         if (allRows.length === 0) {
-            if (force) alert("No se detectaron filas válidas de Grafana. Verifique el contenido pegado.");
+            if (force) alert("No se detectaron filas válidas de Grafana (el INCIDENT_ID debe iniciar con INC). Verifique el contenido pegado.");
             pasoTabla.classList.add("hidden");
             return;
         }
@@ -1114,8 +1118,10 @@
         const yaActivas = [];
 
         allRows.forEach(r => {
+            if (!r.inc || !r.inc.toUpperCase().startsWith("INC")) return;
+
             const esActiva = ACTIVAS_HFC.some(a => {
-                if (r.inc && r.inc !== "EN PROCESO" && a.inc && a.inc === r.inc) return true;
+                if (r.inc && a.inc && a.inc === r.inc) return true;
                 if (a.plano && a.plano.toUpperCase() === r.plano.toUpperCase()) return true;
                 return false;
             });

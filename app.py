@@ -374,6 +374,9 @@ def api_analizar_hfc():
             reg_objs = parse_hfc_text(raw_text)
             rows = [{"plano": r.plano, "equipo": r.equipo, "clientes": r.clientes, "inc": r.inc} for r in reg_objs]
 
+    # Regla HFC: en la columna de INCIDENT_ID sí o sí debe iniciar con INC
+    rows = [r for r in rows if str(r.get("inc", "")).strip().upper().startswith("INC")]
+
     grupos = planos_repo.obtener_grupos_anillo(rows)
     for g in grupos:
         primer_inc_g = "EN PROCESO"
@@ -428,13 +431,15 @@ def _crear_incidencias_individuales(planos, equipos, incs, clientes_list, bosfs,
         if not p_name:
             continue
         eq_name = equipos[i].strip() if i < len(equipos) else ""
-        inc_code = incs[i].strip() if i < len(incs) and incs[i].strip() else "EN PROCESO"
+        inc_code = incs[i].strip() if i < len(incs) and incs[i].strip() else ""
+        if not inc_code.upper().startswith("INC"):
+            continue
 
         # Validar que no exista ya activa para evitar duplicaciones
         p_up = p_name.upper()
         existente = next((
             a for a in hfc_activas 
-            if (inc_code != "EN PROCESO" and a.inc == inc_code) 
+            if a.inc == inc_code 
             or p_up in _extraer_planos_de_incidencia(a)
         ), None)
         if existente:
@@ -691,10 +696,12 @@ def carga_hfc():
     creadas = []
     planos_nuevos = {r.plano.upper() for r in registros}
     for r in registros:
-        inc_code = r.inc if r.inc else "EN PROCESO"
+        inc_code = r.inc if r.inc else ""
+        if not inc_code.upper().startswith("INC"):
+            continue
         p_up = r.plano.upper()
         # Saltar si el plano o el ticket ya está activo en el NOC
-        if p_up in planos_ya_activos or (inc_code != "EN PROCESO" and inc_code in incs_ya_activos):
+        if p_up in planos_ya_activos or inc_code in incs_ya_activos:
             continue
             
         pl = planos_repo.obtener_por_id(r.plano)

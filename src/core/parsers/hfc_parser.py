@@ -49,14 +49,15 @@ def parse_hfc_text(text: str) -> list[HFCRegistro]:
                     continue
 
                 inc = parts[3] if len(parts) > 3 else ""
-                en_proceso = inc.upper() in ("EN PROCESO", "EN_PROCESO")
+                if not inc.strip().upper().startswith("INC"):
+                    continue
 
                 rows.append(HFCRegistro(
                     plano=plano,
                     equipo=equipo,
                     clientes=clientes,
                     inc=inc,
-                    en_proceso=en_proceso
+                    en_proceso=False
                 ))
     else:
         # Columna única: filtrar líneas de títulos y encabezados conocidos
@@ -79,15 +80,15 @@ def parse_hfc_text(text: str) -> list[HFCRegistro]:
             except ValueError:
                 continue
             inc = chunk[3] if len(chunk) > 3 else ""
-            en_proceso = inc.upper() in ("EN PROCESO", "EN_PROCESO")
+            if not inc.strip().upper().startswith("INC"):
+                continue
 
             rows.append(HFCRegistro(
                 plano=plano,
                 equipo=equipo,
                 clientes=clientes,
                 inc=inc,
-                en_proceso=en_proceso
-              
+                en_proceso=False
             ))
 
     return rows

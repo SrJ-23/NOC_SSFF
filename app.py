@@ -1290,6 +1290,42 @@ def actualizar(id_):
         
         nuevo_estado = EstadoIncidencia.ACTUALIZADA if tipo_actualizacion == "ACTUALIZACION" else EstadoIncidencia.CERRADA
         
+        # Para FTTH: guardar servicios adicionales (HFC/MBTS/Corporativo) si se llenaron
+        if inc.tipo == TipoIncidencia.FTTH:
+            hfc_nodos = request.form.get("hfc_nodos", "").strip()
+            hfc_clientes_afectados = request.form.get("hfc_clientes_afectados", "").strip()
+            mbts_detalle = request.form.get("mbts_detalle", "").strip()
+            corp_detalle = request.form.get("corp_detalle", "").strip()
+
+            # Calcular total HFC del anillo desde la base de datos
+            if hfc_nodos or hfc_clientes_afectados:
+                # Extraer OLT del anillo para buscar total en DB
+                olt_m = re.search(r"OLT:\s*([^\n]+)", obs_actualizada, re.IGNORECASE)
+                olt_name = olt_m.group(1).strip() if olt_m else ""
+                hfc_nodos_val = hfc_nodos or "0"
+                hfc_cli_val = hfc_clientes_afectados or "0"
+                # Guardar impacto HFC asociado a esta incidencia FTTH
+                hfc_tag = f"HFC_ADICIONAL: {hfc_nodos_val} nodos, {hfc_cli_val} afectados"
+                if re.search(r"HFC_ADICIONAL:", obs_actualizada):
+                    obs_actualizada = re.sub(r"HFC_ADICIONAL:[^\n]*", hfc_tag, obs_actualizada)
+                else:
+                    obs_actualizada += f"\n{hfc_tag}"
+
+            if mbts_detalle:
+                mbts_tag = f"MBTS_ADICIONAL: {mbts_detalle.replace(chr(10), ' | ')}"
+                if re.search(r"MBTS_ADICIONAL:", obs_actualizada):
+                    obs_actualizada = re.sub(r"MBTS_ADICIONAL:[^\n]*", mbts_tag, obs_actualizada)
+                else:
+                    obs_actualizada += f"\n{mbts_tag}"
+
+            if corp_detalle:
+                corp_tag = f"CORP_ADICIONAL: {corp_detalle.replace(chr(10), ' | ')}"
+                if re.search(r"CORP_ADICIONAL:", obs_actualizada):
+                    obs_actualizada = re.sub(r"CORP_ADICIONAL:[^\n]*", corp_tag, obs_actualizada)
+                else:
+                    obs_actualizada += f"\n{corp_tag}"
+
+        
         inc_actualizada = replace(
             inc,
             estado=nuevo_estado,

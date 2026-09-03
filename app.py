@@ -844,10 +844,14 @@ def restauracion_parcial():
     return redirect(url_for("dashboard"))
 
 
-@app.route("/carga-ftth", methods=["POST"])
+@app.route("/carga-ftth", methods=["GET", "POST"])
 def carga_ftth():
     """Procesa alarmas FTTH: acepta archivo Excel (.xlsx) O texto pegado (TSV de Huawei NCE)."""
+    if request.method == "GET":
+        return redirect(url_for("dashboard"))
+
     archivo = request.files.get("ftth_xlsx")
+
     raw_text = request.form.get("ftth_paste", "").strip()
 
     reporte = None

@@ -31,7 +31,7 @@
                     {% if grupos_nuevos %}
                     <span class="bg-amber-950/60 border border-amber-800 text-amber-300 px-2.5 py-1 rounded-full">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                        {{ grupos_nuevos | sum(attribute='planos'|length) }} plano(s) nuevos
+                        {{ grupos_nuevos | map(attribute='planos') | map('length') | sum }} plano(s) nuevos
                     </span>
                     {% endif %}
                     {% if actualizaciones %}

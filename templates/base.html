@@ -8,65 +8,148 @@
     <title>NOC Assistant - Servicios Fijos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Smooth transitions for collapsible sidebar */
+        #main-sidebar {
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sidebar-text {
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            white-space: nowrap;
+        }
+        .sidebar-collapsed #main-sidebar {
+            width: 4.5rem; /* 72px */
+        }
+        .sidebar-collapsed .sidebar-text,
+        .sidebar-collapsed .sidebar-header-text,
+        .sidebar-collapsed .sidebar-footer-text {
+            display: none;
+        }
+        .sidebar-collapsed .sidebar-nav-item {
+            justify-content: center;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+    </style>
 </head>
 
-<body class="h-full flex text-slate-100 font-sans">
+<body class="h-full flex text-slate-100 font-sans antialiased overflow-hidden">
 
-    <!-- Panel de Navegación Lateral (Sidebar) -->
-    <aside class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between">
+    <!-- Panel de Navegación Lateral Deslizable (Sidebar) -->
+    <aside id="main-sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between shrink-0 select-none relative z-30 shadow-2xl">
         <div>
-            <div class="p-6 border-b border-slate-800">
-                <h1 class="text-xl font-bold tracking-wider text-indigo-400 flex items-center">
-                    <i class="fa-solid fa-satellite-dish mr-2 animate-pulse"></i>SIDERAL NOC ASSISTANT
-                </h1>
-                <p class="text-[10px] text-slate-500 uppercase tracking-widest font-semibold mt-1">Soporte Operativo</p>
+            <!-- Header del Sidebar con botón de colapso -->
+            <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5 overflow-hidden">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center shrink-0 text-indigo-400">
+                        <i class="fa-solid fa-satellite-dish animate-pulse text-sm"></i>
+                    </div>
+                    <div class="sidebar-header-text overflow-hidden">
+                        <h1 class="text-xs font-black tracking-wider text-indigo-300 truncate">NOC ASSISTANT</h1>
+                        <p class="text-[9px] text-slate-500 uppercase tracking-widest font-semibold truncate">Servicios Fijos</p>
+                    </div>
+                </div>
+                <!-- Botón Deslizar / Colapsar -->
+                <button id="sidebar-toggle-btn" onclick="toggleSidebar()"
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 border border-transparent hover:border-slate-800 transition"
+                    title="Ocultar / Deslizar menú lateral">
+                    <i id="sidebar-toggle-icon" class="fa-solid fa-angles-left text-xs"></i>
+                </button>
             </div>
-            <nav class="p-4 space-y-1">
+
+            <!-- Navegación -->
+            <nav class="p-3 space-y-1.5">
                 <a href="/"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-900 hover:text-white transition">
-                    <i class="fa-solid fa-rectangle-list w-5 text-center text-slate-400"></i>
-                    <span>Averías en Curso</span>
+                    class="sidebar-nav-item flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent hover:border-slate-800/60 transition group"
+                    title="Averías en Curso">
+                    <i class="fa-solid fa-rectangle-list w-5 text-center text-slate-400 group-hover:text-indigo-400 text-sm"></i>
+                    <span class="sidebar-text text-xs font-semibold">Averías en Curso</span>
                 </a>
                 <a href="/historica"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-900 hover:text-white transition">
-                    <i class="fa-solid fa-clock-rotate-left w-5 text-center text-slate-400"></i>
-                    <span>Histórica</span>
+                    class="sidebar-nav-item flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent hover:border-slate-800/60 transition group"
+                    title="Histórica">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center text-slate-400 group-hover:text-indigo-400 text-sm"></i>
+                    <span class="sidebar-text text-xs font-semibold">Histórica</span>
                 </a>
                 <a href="/nueva-averia"
-                    class="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-900 hover:text-white transition">
-                    <i class="fa-solid fa-circle-plus w-5 text-center text-slate-400"></i>
-                    <span>Registro Manual</span>
+                    class="sidebar-nav-item flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent hover:border-slate-800/60 transition group"
+                    title="Registro Manual">
+                    <i class="fa-solid fa-circle-plus w-5 text-center text-slate-400 group-hover:text-indigo-400 text-sm"></i>
+                    <span class="sidebar-text text-xs font-semibold">Registro Manual</span>
                 </a>
             </nav>
         </div>
-        <div class="p-4 border-t border-slate-800 text-[11px] text-slate-500 text-center">
-            <i class="fa-solid fa-database mr-1"></i> SQLite Local Activo
+
+        <!-- Footer del Sidebar -->
+        <div class="p-3 border-t border-slate-800/80">
+            <div class="flex items-center justify-center space-x-2 text-[11px] text-slate-500 py-1">
+                <i class="fa-solid fa-database text-emerald-400/80 text-xs"></i>
+                <span class="sidebar-footer-text font-mono text-[10px] text-slate-400">SQLite Activo</span>
+            </div>
         </div>
     </aside>
 
-    <!-- Contenido -->
-    <main class="flex-1 flex flex-col overflow-y-auto">
-        <!-- Notificaciones de Alerta -->
+    <!-- Contenido Principal -->
+    <main class="flex-1 flex flex-col overflow-y-auto bg-slate-900">
+        <!-- Notificaciones de Alerta Flash -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-        <div class="p-4 space-y-2">
+        <div class="px-6 pt-4 space-y-2">
             {% for category, msg in messages %}
-            <div
-                class="p-4 rounded-lg text-sm bg-indigo-950/50 border border-indigo-800 text-indigo-200 flex items-center justify-between">
-                <span><i class="fa-solid fa-circle-info mr-2"></i>{{ msg }}</span>
-                <button onclick="this.parentElement.remove()" class="text-indigo-400 hover:text-indigo-200"><i
-                        class="fa-solid fa-xmark"></i></button>
+            <div class="p-3.5 rounded-xl text-xs font-medium bg-slate-950 border border-slate-800 text-slate-200 flex items-center justify-between shadow-lg">
+                <span class="flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-info text-indigo-400"></i>
+                    <span>{{ msg }}</span>
+                </span>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
             </div>
             {% endfor %}
         </div>
         {% endif %}
         {% endwith %}
 
-        <div class="p-8">
+        <div class="p-6 md:p-8 flex-1">
             {% block content %}{% endblock %}
         </div>
     </main>
 
+    <script>
+        // Manejador del estado del Sidebar deslizable
+        function toggleSidebar() {
+            const body = document.body;
+            const icon = document.getElementById("sidebar-toggle-icon");
+            const isCollapsed = body.classList.toggle("sidebar-collapsed");
+            
+            if (icon) {
+                if (isCollapsed) {
+                    icon.classList.remove("fa-angles-left");
+                    icon.classList.add("fa-angles-right");
+                } else {
+                    icon.classList.remove("fa-angles-right");
+                    icon.classList.add("fa-angles-left");
+                }
+            }
+            try {
+                localStorage.setItem("noc_sidebar_collapsed", isCollapsed ? "1" : "0");
+            } catch (e) {}
+        }
+
+        // Restaurar estado guardado
+        document.addEventListener("DOMContentLoaded", function() {
+            try {
+                if (localStorage.getItem("noc_sidebar_collapsed") === "1") {
+                    document.body.classList.add("sidebar-collapsed");
+                    const icon = document.getElementById("sidebar-toggle-icon");
+                    if (icon) {
+                        icon.classList.remove("fa-angles-left");
+                        icon.classList.add("fa-angles-right");
+                    }
+                }
+            } catch (e) {}
+        });
+    </script>
 </body>
 
 </html>

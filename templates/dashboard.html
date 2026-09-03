@@ -114,27 +114,53 @@
 
     <!-- Lista de Incidencias: Averías en Curso -->
     <div class="space-y-4">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-4">
             <div>
                 <h2 class="text-lg font-bold text-slate-200 flex items-center">
                     <i class="fa-solid fa-fire-flame-curved text-rose-500 mr-2"></i>Averías en Curso
                 </h2>
                 <p class="text-xs text-slate-400">Monitoreo activo de incidentes de red HFC y FTTH</p>
             </div>
-            <button onclick="window.location.href='/'"
-                class="text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 px-3.5 py-2 rounded-lg transition flex items-center space-x-1.5 border border-slate-700">
-                <i class="fa-solid fa-rotate"></i>
-                <span>Actualizar Lista</span>
-            </button>
+
+            <!-- Filtros Interactivos HFC / FTTH / TODOS -->
+            <div class="flex items-center gap-2">
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-1 flex items-center space-x-1 shadow-inner">
+                    <button type="button" id="filter-btn-all" onclick="filterTech('ALL')"
+                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-indigo-600 text-white shadow">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>Todos</span>
+                        <span id="badge-count-all" class="text-[10px] px-1.5 py-0.2 bg-indigo-950/80 rounded-full font-mono">{{ incidencias | length }}</span>
+                    </button>
+                    <button type="button" id="filter-btn-hfc" onclick="filterTech('HFC')"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+                        <i class="fa-solid fa-chart-line text-indigo-400"></i>
+                        <span>HFC</span>
+                        <span id="badge-count-hfc" class="text-[10px] px-1.5 py-0.2 bg-slate-900 rounded-full font-mono">{{ incidencias | selectattr('obj.tipo.value', 'equalto', 'HFC') | list | length }}</span>
+                    </button>
+                    <button type="button" id="filter-btn-ftth" onclick="filterTech('FTTH')"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+                        <i class="fa-solid fa-network-wired text-teal-400"></i>
+                        <span>FTTH</span>
+                        <span id="badge-count-ftth" class="text-[10px] px-1.5 py-0.2 bg-slate-900 rounded-full font-mono">{{ incidencias | selectattr('obj.tipo.value', 'equalto', 'FTTH') | list | length }}</span>
+                    </button>
+                </div>
+
+                <button onclick="window.location.href='/'"
+                    class="text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 px-3.5 py-2 rounded-lg transition flex items-center space-x-1.5 border border-slate-700 shadow"
+                    title="Recargar datos">
+                    <i class="fa-solid fa-rotate"></i>
+                    <span>Actualizar</span>
+                </button>
+            </div>
         </div>
 
-        <div class="space-y-3">
+        <div id="incidencias-container" class="space-y-3">
             {% for inc in incidencias %}
-            <div
-                class="bg-slate-950 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition flex items-start space-x-4">
+            <div data-tech="{{ inc.obj.tipo.value }}"
+                class="incident-card bg-slate-950 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition flex items-start space-x-4">
 
                 <!-- Indicador Visual (Semaforización) -->
-                <div class="mt-1">
+                <div class="mt-1 shrink-0">
                     {% if inc.semaforo == 'ROJO' %}
                     <span class="flex h-3.5 w-3.5 relative">
                         <span
@@ -150,22 +176,51 @@
 
                 <!-- Detalles del Incidente -->
                 <div class="flex-1 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h3 class="font-bold text-slate-100 text-base flex items-center space-x-2">
-                                <span>{{ inc.obj.inc }}</span>
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h3 class="font-bold text-slate-100 text-base font-mono">
+                                    {{ inc.obj.inc }}
+                                </h3>
                                 <span
-                                    class="text-xs px-2 py-0.5 rounded font-mono font-semibold {% if inc.obj.tipo.value == 'HFC' %}bg-indigo-950 text-indigo-300 border border-indigo-800{% else %}bg-teal-950 text-teal-300 border border-teal-800{% endif %}">
+                                    class="text-xs px-2 py-0.5 rounded font-mono font-bold {% if inc.obj.tipo.value == 'HFC' %}bg-indigo-950 text-indigo-300 border border-indigo-800{% else %}bg-teal-950 text-teal-300 border border-teal-800{% endif %}">
                                     {{ inc.obj.tipo.value }}
                                 </span>
-                                <span class="text-slate-500 font-normal text-sm">· {{ inc.obj.tipo_falla }}</span>
-                            </h3>
-                            <p class="text-xs text-slate-400 mt-1">
+
+                                <!-- SOLO PARA HFC: Mostrar plano(s) afectado(s) -->
+                                {% if inc.obj.tipo.value == 'HFC' and inc.planos_str %}
+                                <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-chart-line text-[11px] text-indigo-400"></i>
+                                    <span>Plano{% if inc.planos_count > 1 %}s ({{ inc.planos_count }}){% endif %}: <strong class="text-white">{{ inc.planos_str }}</strong></span>
+                                </span>
+                                {% endif %}
+
+                                <!-- SOLO PARA FTTH: Mostrar plano(s) y anillo/troncal -->
+                                {% if inc.obj.tipo.value == 'FTTH' %}
+                                    {% if inc.planos_str %}
+                                    <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-teal-950/80 border border-teal-700/80 text-teal-300 flex items-center gap-1.5 shadow-sm">
+                                        <i class="fa-solid fa-network-wired text-[11px] text-teal-400"></i>
+                                        <span>Plano{% if inc.planos_count > 1 %}s ({{ inc.planos_count }}){% endif %}: <strong class="text-white">{{ inc.planos_str }}</strong></span>
+                                    </span>
+                                    {% endif %}
+                                    {% if inc.olt_troncal %}
+                                    <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-amber-950/80 border border-amber-700/80 text-amber-300 flex items-center gap-1.5 shadow-sm">
+                                        <i class="fa-solid fa-server text-[11px] text-amber-400"></i>
+                                        <span>Troncal/OLT: <strong class="text-white">{{ inc.olt_troncal }}</strong></span>
+                                    </span>
+                                    {% endif %}
+                                {% endif %}
+
+                                <span class="text-slate-400 font-normal text-xs">· {{ inc.obj.tipo_falla }}</span>
+                            </div>
+
+                            <p class="text-xs text-slate-400">
                                 {{ inc.obj.departamento }} / {{ inc.obj.provincia }} / {{ inc.obj.distrito }} · BOSF:
                                 <span class="text-slate-200 font-medium">{{ inc.obj.bosf or 'Sin Asignar' }}</span> ·
                                 Estado: <span class="text-indigo-400 font-medium">{{ inc.obj.estado.value }}</span>
                             </p>
                         </div>
+
                         <div class="flex items-center space-x-3">
                             <div class="text-right">
                                 <span class="text-xs text-slate-400 font-mono block">
@@ -214,7 +269,7 @@
                         <a href="/actualizar/{{ inc.obj.id }}"
                             class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-lg font-semibold transition shadow flex items-center space-x-1.5">
                             <i class="fa-solid fa-pen-to-square"></i>
-                            <span>Reportar Avance / Cierre</span>
+                            <span>Actualización/ Cierre</span>
                         </a>
                         {% endif %}
                     </div>
@@ -228,10 +283,68 @@
                     incidencias.</p>
             </div>
             {% endfor %}
+
+            <!-- Mensaje de filtro vacío -->
+            <div id="filter-empty-state" class="hidden text-center py-12 bg-slate-950 border border-slate-800 rounded-xl">
+                <i class="fa-solid fa-filter text-slate-600 text-2xl mb-2 block"></i>
+                <p class="text-slate-400 text-sm font-medium">No hay averías activas para la tecnología seleccionada.</p>
+            </div>
         </div>
     </div>
 
 </div>
+
+<script>
+    // Filtro interactivo HFC / FTTH / TODOS
+    function filterTech(tech) {
+        const cards = document.querySelectorAll('.incident-card');
+        const emptyState = document.getElementById('filter-empty-state');
+        let visibleCount = 0;
+
+        // Actualizar estilos de los botones
+        const btnAll = document.getElementById('filter-btn-all');
+        const btnHfc = document.getElementById('filter-btn-hfc');
+        const btnFtth = document.getElementById('filter-btn-ftth');
+
+        const activeClasses = ['bg-indigo-600', 'text-white', 'shadow'];
+        const inactiveClasses = ['text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-900'];
+
+        [btnAll, btnHfc, btnFtth].forEach(btn => {
+            btn.classList.remove(...activeClasses);
+            btn.classList.add(...inactiveClasses);
+        });
+
+        if (tech === 'ALL') {
+            btnAll.classList.add(...activeClasses);
+            btnAll.classList.remove(...inactiveClasses);
+        } else if (tech === 'HFC') {
+            btnHfc.classList.add(...activeClasses);
+            btnHfc.classList.remove(...inactiveClasses);
+        } else if (tech === 'FTTH') {
+            btnFtth.classList.add(...activeClasses);
+            btnFtth.classList.remove(...inactiveClasses);
+        }
+
+        cards.forEach(card => {
+            const cardTech = card.getAttribute('data-tech');
+            if (tech === 'ALL' || cardTech === tech) {
+                card.style.display = 'flex';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (emptyState) {
+            if (visibleCount === 0 && cards.length > 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+        }
+    }
+</script>
+
 
 <!-- ======================================================== -->
 <!-- MODAL 1: CARGA HFC (GRAFANA)                             -->

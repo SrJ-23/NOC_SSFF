@@ -198,13 +198,34 @@ def dashboard():
                     "departamento": inc.departamento,
                     "es_masiva": False
                 })
-            
+        planos_inc = _extraer_planos_de_incidencia(inc)
+        planos_str = ", ".join(planos_inc) if planos_inc else (p_name or "")
+        
+        # Extraer OLT / Troncal o Anillo
+        olt_troncal = ""
+        m_olt = re.search(r"OLT:\s*([^\n]+)", inc.observaciones, re.IGNORECASE)
+        if m_olt:
+            olt_troncal = m_olt.group(1).strip()
+        else:
+            m_anillo = re.search(r"Anillo\s*(\d+)", inc.observaciones, re.IGNORECASE)
+            if m_anillo:
+                olt_troncal = f"Anillo {m_anillo.group(1)}"
+            else:
+                m_cmts = re.search(r"CMTS:\s*([^\n]+)", inc.observaciones, re.IGNORECASE)
+                if m_cmts:
+                    olt_troncal = m_cmts.group(1).strip()
+
         inc_dto = {
             "obj": inc,
             "semaforo": calcular_semaforo(minutos_sin_actualizar, is_closed=is_closed).value,
             "duracion_inicio": formatear_duracion(inc.minutos_desde_inicio),
             "duracion_actualizacion": formatear_duracion(minutos_sin_actualizar),
-            "servicios_str": ", ".join(s.value for s in inc.servicios) or "—"
+            "servicios_str": ", ".join(s.value for s in inc.servicios) or "—",
+            "planos_list": planos_inc,
+            "planos_str": planos_str,
+            "planos_count": len(planos_inc),
+            "olt_troncal": olt_troncal,
+            "tipo_tag": inc.tipo.value if hasattr(inc.tipo, "value") else str(inc.tipo)
         }
         
         if is_closed:
@@ -1188,6 +1209,33 @@ def detalle(id_):
     plano_name, _ = _obtener_plano_y_clientes(inc)
     plano_obj = planos_repo.obtener_por_id(plano_name) if plano_name else None
     
+    # Extraer todos los planos afectados para mostrarlos detalladamente en la vista
+    planos_ids = _extraer_planos_de_incidencia(inc)
+    if not planos_ids and plano_name:
+        planos_ids = [plano_name]
+        
+    planos_detalle = []
+    olt_match = re.search(r"OLT:\s*([^\n]+)", inc.observaciones, re.IGNORECASE)
+    olt_val = olt_match.group(1).strip() if olt_match else ""
+
+    for pid in planos_ids:
+        pobj = planos_repo.obtener_por_id(pid)
+        if inc.tipo == TipoIncidencia.FTTH:
+            onts = _extraer_onts_registradas_ftth(inc, pid)
+        else:
+            m_cli = re.search(rf"{re.escape(pid)}\s*\((\d+)\)", inc.observaciones, re.IGNORECASE)
+            onts = int(m_cli.group(1)) if m_cli else (pobj.clientes if pobj else 0)
+            
+        planos_detalle.append({
+            "id": pid,
+            "clientes": onts,
+            "departamento": pobj.departamento if pobj else inc.departamento,
+            "provincia": pobj.provincia if pobj else inc.provincia,
+            "distrito": pobj.distrito if pobj else inc.distrito,
+            "hub": pobj.hub if pobj else "—",
+            "cmts_olt": pobj.cmts_olt if pobj else (olt_val or "—")
+        })
+
     personal_list = personal_repo.listar_activos()
     pers_obj = next((p for p in personal_list if p.nombre == inc.bosf), None)
     tel = pers_obj.telefono if pers_obj else None
@@ -1198,6 +1246,7 @@ def detalle(id_):
         "detalle.html",
         inc=inc,
         plano=plano_obj,
+        planos_detalle=planos_detalle,
         contratista=pers_obj,
         telefono=tel,
         whatsapp_msg=whatsapp_msg

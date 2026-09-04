@@ -1,4 +1,12 @@
 # app.py
+import os
+import time
+
+# Configurar zona horaria de Perú a nivel de entorno/OS
+os.environ["TZ"] = "America/Lima"
+if hasattr(time, "tzset"):
+    time.tzset()
+
 from flask import Flask, render_template, request, redirect, url_for, flash
 import datetime
 import json
@@ -15,7 +23,7 @@ from src.core.models import TipoIncidencia, ServicioAfectado, EstadoIncidencia
 from src.core.parsers.hfc_parser import parse_hfc_text
 from src.core.parsers.ftth_parser import parse_ftth_excel, parse_ftth_text
 from src.core.generators.message_generator import generate_whatsapp_message
-from src.utils.time_utils import calcular_semaforo, formatear_duracion
+from src.utils.time_utils import calcular_semaforo, formatear_duracion, now_peru
 
 app = Flask(__name__)
 app.secret_key = "noc_fixed_services_secure_session_key"
@@ -89,17 +97,17 @@ TOP_UPDATES_FTTH = [
 ]
 
 def _parse_hora_averia(hora_str: str) -> datetime.datetime:
-    """Convierte un string HH:MM a datetime de hoy. Fallback a datetime.now()."""
+    """Convierte un string HH:MM a datetime de hoy (hora Perú). Fallback a now_peru()."""
     if not hora_str:
-        return datetime.datetime.now()
+        return now_peru()
     try:
         parts = hora_str.strip().replace("h", "").split(":")
         h = int(parts[0])
         m = int(parts[1]) if len(parts) > 1 else 0
-        now = datetime.datetime.now()
+        now = now_peru()
         return now.replace(hour=h, minute=m, second=0, microsecond=0)
     except Exception:
-        return datetime.datetime.now()
+        return now_peru()
 
 def _extraer_planos_de_incidencia(incidencia) -> list[str]:
     """Extrae la lista de todos los códigos de planos contenidos en una incidencia (individual o masiva)."""
@@ -241,7 +249,7 @@ def dashboard():
     activas_ordenadas = sorted(activas, key=lambda i: i["obj"].minutos_desde_ultima_actualizacion, reverse=True)
     
     personal_activos = personal_repo.listar_activos()
-    hora_actual = datetime.datetime.now().strftime("%H:%M")
+    hora_actual = now_peru().strftime("%H:%M")
     
     # ID de incidencia recién creada en FTTH para completar datos si aplica
     completar_id = request.args.get("completar_id")
@@ -829,7 +837,7 @@ def _separar_cierres_y_restauraciones(hfc_activas, planos_en_reporte_up: set, gr
 @app.route("/restauracion-parcial", methods=["POST"])
 def restauracion_parcial():
     """Guarda la actualización de impacto cuando una masiva pierde algunos nodos parcialmente."""
-    hora_actual = datetime.datetime.now()
+    hora_actual = now_peru()
     hora_str = hora_actual.strftime("%H:%M")
 
     for key, value in request.form.items():
@@ -985,7 +993,7 @@ def carga_ftth():
     ]
 
     personal_activos = personal_repo.listar_activos()
-    hora_actual = datetime.datetime.now().strftime("%H:%M")
+    hora_actual = now_peru().strftime("%H:%M")
 
     # Pre-computar planos_nuevos_str para cada actualización (usado en template hidden fields)
     for upd_data in actualizaciones_por_inc.values():
@@ -1111,12 +1119,12 @@ def ftth_actualizar_impacto():
     Procesa actualizaciones de impacto FTTH cuando una nueva carga de alarmas
     indica reducción de ONTs o planos completamente recuperados.
     """
-    hora_str = request.form.get("hora", datetime.datetime.now().strftime("%H:%M")).strip()
-    hora_actual = datetime.datetime.now().replace(
-        hour=int(hora_str.split(":")[0]),
-        minute=int(hora_str.split(":")[1]) if ":" in hora_str else 0,
-        second=0, microsecond=0
-    )
+    hora_str = request.form.get("hora", now_peru().strftime("%H:%M")).strip()
+    try:
+        h, m = [int(x) for x in hora_str.split(":")[:2]]
+        hora_actual = now_peru().replace(hour=h, minute=m, second=0, microsecond=0)
+    except Exception:
+        hora_actual = now_peru()
 
     actualizados = 0
 
@@ -1202,7 +1210,7 @@ def completar_incidencia(id_):
         pext=pext,
         tipo_falla=tipo_falla,
         observaciones=observaciones or inc.observaciones,
-        ultima_actualizacion=datetime.datetime.now()
+        ultima_actualizacion=now_peru()
     )
     incidencias_repo.guardar(inc_actualizada)
     flash(f"Incidencia {inc_code} completada y registrada exitosamente.", "success")
@@ -1212,7 +1220,7 @@ def completar_incidencia(id_):
 @app.route("/procesar-cierre-masivo", methods=["POST"])
 def procesar_cierre_masivo():
     """Procesa los motivos de cierre ingresados para las averías recuperadas"""
-    hora_actual = datetime.datetime.now().strftime("%H:%M")
+    hora_actual = now_peru().strftime("%H:%M")
     
     for key, value in request.form.items():
         if key.startswith("motivo_"):
@@ -1228,7 +1236,7 @@ def procesar_cierre_masivo():
                     inc_match,
                     estado=EstadoIncidencia.CERRADA,
                     observaciones=obs_actualizada,
-                    ultima_actualizacion=datetime.datetime.now()
+                    ultima_actualizacion=now_peru()
                 )
                 incidencias_repo.guardar(inc_actualizada)
                 
@@ -1301,7 +1309,7 @@ def actualizar(id_):
         
     if request.method == "POST":
         tipo_actualizacion = request.form.get("tipo_actualizacion")  # ACTUALIZACION o CIERRE
-        hora = request.form.get("hora") or datetime.datetime.now().strftime("%H:%M")
+        hora = request.form.get("hora") or now_peru().strftime("%H:%M")
         novedad = request.form.get("novedad", "").strip()
         causa_raiz = request.form.get("causa_raiz", "").strip()
         if novedad:
@@ -1381,7 +1389,7 @@ def actualizar(id_):
             inc,
             estado=nuevo_estado,
             observaciones=obs_actualizada,
-            ultima_actualizacion=datetime.datetime.now()
+            ultima_actualizacion=now_peru()
         )
         incidencias_repo.guardar(inc_actualizada)
         flash("Soporte operativo registrado en la base de datos.", "success")
@@ -1427,7 +1435,7 @@ def actualizar(id_):
         inc=inc,
         top_updates=top_updates,
         top_closures=TOP_CLOSURES,
-        hora_actual=datetime.datetime.now().strftime("%H:%M"),
+        hora_actual=now_peru().strftime("%H:%M"),
         es_ftth=(inc.tipo == TipoIncidencia.FTTH),
         causas_raiz=FTTH_CAUSAS_RAIZ,
         correctivos=FTTH_CORRECTIVOS,

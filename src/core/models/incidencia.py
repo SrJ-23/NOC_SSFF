@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
+from src.utils.time_utils import now_peru
+
 
 class TipoIncidencia(str, Enum):
     HFC = "HFC"
@@ -59,12 +61,12 @@ class Incidencia:
 
     @property
     def minutos_desde_ultima_actualizacion(self) -> float:
-        delta = datetime.now() - self.ultima_actualizacion
+        delta = now_peru() - self.ultima_actualizacion
         return delta.total_seconds() / 60
 
     @property
     def minutos_desde_inicio(self) -> float:
-        delta = datetime.now() - self.hora_inicio
+        delta = now_peru() - self.hora_inicio
         return delta.total_seconds() / 60
 
     @classmethod
@@ -119,5 +121,5 @@ def _parse_datetime(value) -> datetime:
     if isinstance(value, datetime):
         return value
     if not value:
-        return datetime.now()
+        return now_peru()
     return datetime.fromisoformat(str(value))

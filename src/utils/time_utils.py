@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 
 from src.config.settings import SEMAFORO_DEFAULT, SemaforoConfig
+
+# Zona horaria de Perú: UTC-5 (sin horario de verano)
+PERU_TZ = timezone(timedelta(hours=-5))
+
+
+def now_peru() -> datetime:
+    """Retorna la fecha y hora actual en hora de Perú (UTC-5) como naive datetime."""
+    return datetime.now(PERU_TZ).replace(tzinfo=None)
 
 
 class ColorSemaforo(str, Enum):
@@ -45,5 +53,5 @@ def calcular_semaforo(
 
 
 def tiempo_transcurrido_desde(momento: datetime) -> float:
-    """Minutos transcurridos desde `momento` hasta ahora."""
-    return (datetime.now() - momento).total_seconds() / 60
+    """Minutos transcurridos desde `momento` hasta ahora en hora de Perú."""
+    return (now_peru() - momento).total_seconds() / 60

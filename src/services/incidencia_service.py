@@ -4,6 +4,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from src.core.models import Incidencia, TipoIncidencia, EstadoIncidencia, ServicioAfectado, HFCRegistro
+from src.utils.time_utils import now_peru
 
 class IncidenciaService:
     def __init__(self, repo):
@@ -15,7 +16,7 @@ class IncidenciaService:
     def marcar_activa(self, inc: Incidencia) -> None:
         from dataclasses import replace
         if inc.estado == EstadoIncidencia.NUEVA:
-            inc_act = replace(inc, estado=EstadoIncidencia.ACTIVA, ultima_actualizacion=datetime.now())
+            inc_act = replace(inc, estado=EstadoIncidencia.ACTIVA, ultima_actualizacion=now_peru())
             self._repo.guardar(inc_act)
 
     def crear(
@@ -32,7 +33,7 @@ class IncidenciaService:
         observaciones: str,
         hora_inicio: datetime | None = None,
     ) -> Incidencia:
-        dt_inicio = hora_inicio or datetime.now()
+        dt_inicio = hora_inicio or now_peru()
         nueva_inc = Incidencia(
             id=str(uuid.uuid4())[:8].upper(),
             inc=inc,
@@ -43,7 +44,7 @@ class IncidenciaService:
             provincia=provincia,
             distrito=distrito,
             hora_inicio=dt_inicio,
-            ultima_actualizacion=datetime.now(),
+            ultima_actualizacion=now_peru(),
             bosf=bosf,
             pext=pext,
             servicios=servicios,

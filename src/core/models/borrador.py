@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from src.utils.time_utils import now_peru
 
 
 class TipoMensajeBorrador(str, Enum):
@@ -40,7 +41,7 @@ class Borrador:
             template_version_id=str(data.get("TEMPLATE_VERSION_ID", "")).strip(),
             creado_en=datetime.fromisoformat(str(data.get("CREADO_EN")))
             if data.get("CREADO_EN")
-            else datetime.now(),
+            else now_peru(),
             confirmado=str(data.get("CONFIRMADO", "FALSE")).strip().upper() == "TRUE",
         )
 

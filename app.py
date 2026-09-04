@@ -1346,6 +1346,7 @@ def actualizar(id_):
         hora = request.form.get("hora") or now_peru().strftime("%H:%M")
         novedad = request.form.get("novedad", "").strip()
         causa_raiz = request.form.get("causa_raiz", "").strip()
+        correctivo = request.form.get("correctivo", "").strip()
         if novedad:
             linea_nueva = f"\n[{hora}h] {tipo_actualizacion}: {novedad}"
         elif inc.tipo == TipoIncidencia.FTTH:

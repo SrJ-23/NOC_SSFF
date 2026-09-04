@@ -52,18 +52,28 @@ def generate_whatsapp_message(
     # Parsear historia desde observaciones
     historia_lines = []
     for line in incidencia.observaciones.split('\n'):
-        match = re.search(r"^\[(\d{2}:\d{2})h?\]\s*(.*)", line.strip())
+        match = re.search(r"^\[(\d{2}:\d{2})\s*h?\]\s*(.*)", line.strip())
         if match:
             hora_val = match.group(1)
             desc_val = match.group(2)
             # Limpiar prefijos ACTUALIZACION/CIERRE
             desc_val = re.sub(r"^(ACTUALIZACION|CIERRE):\s*", "", desc_val, flags=re.IGNORECASE)
             desc_val = desc_val.strip()
-            historia_lines.append(f"*{hora_val}h {desc_val}")
+            historia_lines.append(f"*{hora_val} h {desc_val}")
 
     historia_lines.reverse()
     if not any("Se deriva a BOSF" in l for l in historia_lines):
-        historia_lines.append(f"*{hora_str}h Se deriva a BOSF {bosf_name} para su atención.")
+        dt_primera_act = incidencia.hora_inicio + timedelta(minutes=5)
+        hora_derivacion_str = dt_primera_act.strftime("%H:%M")
+        historia_lines.append(f"*{hora_derivacion_str} h Se deriva a BOSF {bosf_name} para su atención.")
+    else:
+        # Si la derivación inicial tenía la misma hora que hora_inicio, ajustarla a +5 min
+        hora_inicio_str = incidencia.hora_inicio.strftime("%H:%M")
+        for idx, l in enumerate(historia_lines):
+            if f"*{hora_inicio_str}" in l and "Se deriva a BOSF" in l:
+                dt_primera_act = incidencia.hora_inicio + timedelta(minutes=5)
+                nueva_hora = dt_primera_act.strftime("%H:%M")
+                historia_lines[idx] = re.sub(rf"^\*{hora_inicio_str}\s*h?\s*", f"*{nueva_hora} h ", l)
 
     history_block = "\n".join(historia_lines)
 

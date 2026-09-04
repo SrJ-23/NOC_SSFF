@@ -96,18 +96,45 @@ TOP_UPDATES_FTTH = [
     "Se observa el restablecimiento de [X] Clientes FTTH. PEXT finaliza fusiones de fibra optica. Se procede al cierre de la notificacion.",
 ]
 
-def _parse_hora_averia(hora_str: str) -> datetime.datetime:
-    """Convierte un string HH:MM a datetime de hoy (hora Perú). Fallback a now_peru()."""
-    if not hora_str:
-        return now_peru()
-    try:
-        parts = hora_str.strip().replace("h", "").split(":")
-        h = int(parts[0])
-        m = int(parts[1]) if len(parts) > 1 else 0
+def _parse_hora_averia(hora_str: str, fecha_str: str = "", arrived_on_str: str = "") -> datetime.datetime:
+    """
+    Convierte hora_str (HH:MM o fecha completa) a datetime en hora Perú.
+    Toma la fecha de referencia en orden de prioridad:
+    1. Si hora_str incluye fecha completa.
+    2. fecha_str si se proporciona (YYYY-MM-DD o DD/MM/YYYY).
+    3. arrived_on_str si contiene fecha.
+    4. Fallback: now_peru().
+    """
+    from src.core.parsers.ftth_parser import _parse_flexible_datetime
+
+    # 1. Si hora_str viene con fecha completa
+    dt_full = _parse_flexible_datetime(hora_str)
+    if dt_full and re.search(r"\d{1,2}:\d{2}", str(hora_str)):
+        return dt_full
+
+    # 2. Extraer hora y minuto de hora_str
+    h, m = 0, 0
+    m_time = re.search(r"(\d{1,2}):(\d{2})", str(hora_str))
+    if m_time:
+        h = int(m_time.group(1))
+        m = int(m_time.group(2))
+    elif not hora_str:
         now = now_peru()
-        return now.replace(hour=h, minute=m, second=0, microsecond=0)
-    except Exception:
-        return now_peru()
+        h, m = now.hour, now.minute
+
+    # 3. Extraer fecha base de fecha_str o arrived_on_str
+    base_dt = None
+    if fecha_str:
+        base_dt = _parse_flexible_datetime(fecha_str)
+    if not base_dt and arrived_on_str:
+        primera_parte = arrived_on_str.split(" a ")[0].strip()
+        base_dt = _parse_flexible_datetime(primera_parte)
+
+    if base_dt:
+        return base_dt.replace(hour=h, minute=m, second=0, microsecond=0)
+
+    now = now_peru()
+    return now.replace(hour=h, minute=m, second=0, microsecond=0)
 
 def _extraer_planos_de_incidencia(incidencia) -> list[str]:
     """Extrae la lista de todos los códigos de planos contenidos en una incidencia (individual o masiva)."""
@@ -1001,6 +1028,8 @@ def carga_ftth():
         upd_data["planos_nuevos_str"] = ", ".join(parts)
         upd_data["total_nuevo"] = sum(p["onts_ahora"] for p in upd_data["planos_nuevos_data"])
 
+    fecha_actual = now_peru().strftime("%Y-%m-%d")
+
     return render_template(
         "ftth_preview.html",
         reporte=reporte,
@@ -1009,6 +1038,7 @@ def carga_ftth():
         planos_recuperados_completos=planos_recuperados_completos,
         personal_activos=personal_activos,
         hora_actual=reporte.hora_deteccion or hora_actual,
+        fecha_averia=reporte.fecha_deteccion_str or fecha_actual,
     )
 
 
@@ -1016,15 +1046,16 @@ def carga_ftth():
 def ftth_confirmar():
     """Crea la incidencia FTTH masiva con los datos del formulario de previsualización."""
     hora_averia_str = request.form.get("hora_averia", "").strip()
+    fecha_averia_str = request.form.get("fecha_averia", "").strip()
     bosf_val = request.form.get("bosf", "").strip()
     inc_code = request.form.get("inc", "").strip() or "EN PROCESO"
-    tipo_falla = request.form.get("tipo_falla", "Caída de OLT FTTH").strip()
+    tipo_falla = request.form.get("tipo_falla", "Corte de Fibra").strip()
     olt_name = request.form.get("olt_name", "").strip()
     planos_json = request.form.get("planos_json", "[]").strip()
     total_onts = int(request.form.get("total_onts", "0") or 0)
     arrived_on_str = request.form.get("arrived_on_str", "").strip()
 
-    dt_inicio = _parse_hora_averia(hora_averia_str)
+    dt_inicio = _parse_hora_averia(hora_averia_str, fecha_str=fecha_averia_str, arrived_on_str=arrived_on_str)
 
     try:
         planos_list = json.loads(planos_json)
@@ -1065,8 +1096,11 @@ def ftth_confirmar():
         f"Detalle_Distritos: {detalle_distritos}\n"
         f"Arrived_On: {arrived_on_str}\n"
     )
-    if bosf_val:
-        obs += f"[{dt_inicio.strftime('%H:%M')}h] Se deriva a BOSF {bosf_val} para su atención."
+    # Primera actualización por defecto a los 5 minutos de la falla
+    dt_primera_act = dt_inicio + datetime.timedelta(minutes=5)
+    hora_primera_act_str = dt_primera_act.strftime("%H:%M")
+    bosf_mostrar = bosf_val or "Pendiente"
+    obs += f"[{hora_primera_act_str}h] Se deriva a BOSF {bosf_mostrar} para su atención."
 
     # Servicios adicionales de otros NOC (HFC / MBTS / Corporativo)
     hfc_nodos = request.form.get("hfc_nodos", "").strip()

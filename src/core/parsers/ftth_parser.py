@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import io
 from dataclasses import dataclass
+from datetime import datetime
 
 try:
     import pandas as pd
@@ -13,9 +14,63 @@ except ImportError:
     PANDAS_OK = False
 
 
+def _parse_flexible_datetime(val) -> datetime | None:
+    """Parsea una fecha/hora en múltiples formatos comunes (ISO, DD/MM/YYYY, etc.)"""
+    if val is None:
+        return None
+    if isinstance(val, datetime):
+        return val
+    s = str(val).strip().strip("'\"")
+    if not s or s.lower() in ("nan", "nat", "none", "null", "-"):
+        return None
+
+    # Si empieza con año YYYY
+    if re.match(r"^\d{4}[-/]", s):
+        try:
+            dt = pd.to_datetime(s, errors="coerce") if PANDAS_OK else None
+            if dt is not None and not pd.isna(dt):
+                return dt.to_pydatetime() if hasattr(dt, "to_pydatetime") else dt
+        except Exception:
+            pass
+    else:
+        # Formato día primero DD/MM/YYYY
+        try:
+            dt = pd.to_datetime(s, dayfirst=True, errors="coerce") if PANDAS_OK else None
+            if dt is not None and not pd.isna(dt):
+                return dt.to_pydatetime() if hasattr(dt, "to_pydatetime") else dt
+        except Exception:
+            pass
+
+    for fmt in (
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%d-%m-%Y %H:%M:%S",
+        "%d-%m-%Y %H:%M",
+        "%Y/%m/%d %H:%M:%S",
+        "%Y/%m/%d %H:%M",
+    ):
+        try:
+            return datetime.strptime(s, fmt)
+        except ValueError:
+            pass
+
+    m = re.search(r"(\d{1,4}[-/]\d{1,2}[-/]\d{1,4})\s+(\d{1,2}:\d{2}(?::\d{2})?)", s)
+    if m and PANDAS_OK:
+        try:
+            dt = pd.to_datetime(f"{m.group(1)} {m.group(2)}", dayfirst=True, errors="coerce")
+            if not pd.isna(dt):
+                return dt.to_pydatetime() if hasattr(dt, "to_pydatetime") else dt
+        except Exception:
+            pass
+
+    return None
+
+
 @dataclass
 class FtthReporte:
-    """Resultado del parseo de un archivo Excel FTTH."""
+    """Resultado del parseo de un archivo Excel o texto FTTH."""
     planos: list[dict]          # [{"plano": str, "onts": int}, ...]
     total_onts: int
     olts: list[str]             # Nombres de OLT detectadas
@@ -23,6 +78,8 @@ class FtthReporte:
     hora_deteccion: str         # Primera hora detectada "HH:MM" o ""
     ok: bool
     error: str
+    fecha_deteccion_str: str = "" # Primera fecha detectada "YYYY-MM-DD" o ""
+    dt_deteccion: datetime | None = None # Objeto datetime de la primera detección
 
 
 def parse_ftth_excel(file_bytes: bytes, filename: str = "") -> FtthReporte:
@@ -42,19 +99,24 @@ def parse_ftth_excel(file_bytes: bytes, filename: str = "") -> FtthReporte:
 
         fila_cabecera = 5  # fallback
         for idx, fila in df_temp.iterrows():
-            if fila.astype(str).str.contains("Arrived On", case=False, na=False).any():
+            if fila.astype(str).str.contains(r"arrived\s*on", case=False, na=False, regex=True).any():
                 fila_cabecera = idx
                 break
 
         # 2. Cargar datos reales
         df = pd.read_excel(buf, skiprows=fila_cabecera, engine="openpyxl")
-        df.columns = df.columns.str.strip()
+        df.columns = [re.sub(r"\s+", " ", str(col)).strip() for col in df.columns]
 
-        mapa = {col.lower(): col for col in df.columns}
-        col_user_label  = mapa.get("user label")
-        col_alarm_source = mapa.get("alarm source")
-        col_other_info  = mapa.get("other information")
-        col_arrived_on  = mapa.get("arrived on (st)")
+        def find_col(pat: str):
+            for col in df.columns:
+                if re.search(pat, col, re.IGNORECASE):
+                    return col
+            return None
+
+        col_user_label   = find_col(r"user\s*label")
+        col_alarm_source = find_col(r"alarm\s*source")
+        col_other_info   = find_col(r"other\s*information")
+        col_arrived_on   = find_col(r"arrived\s*on")
 
         if not col_user_label or not col_other_info:
             return FtthReporte([], 0, [], "", "", False,
@@ -97,15 +159,23 @@ def parse_ftth_excel(file_bytes: bytes, filename: str = "") -> FtthReporte:
         # 6. Rango de fechas de las alarmas
         arrived_on_str = ""
         hora_deteccion = ""
+        fecha_deteccion_str = ""
+        dt_deteccion = None
         if col_arrived_on and col_arrived_on in df.columns:
-            fechas = pd.to_datetime(df[col_arrived_on], errors="coerce").dropna()
-            if not fechas.empty:
-                f_min = fechas.min()
-                f_max = fechas.max()
+            fechas_parsed = []
+            for val in df[col_arrived_on].dropna():
+                dt = _parse_flexible_datetime(val)
+                if dt:
+                    fechas_parsed.append(dt)
+            if fechas_parsed:
+                f_min = min(fechas_parsed)
+                f_max = max(fechas_parsed)
                 min_str = f_min.strftime("%Y-%m-%d %H:%M:%S")
                 max_str = f_max.strftime("%Y-%m-%d %H:%M:%S")
                 arrived_on_str = min_str if min_str == max_str else f"{min_str} a {max_str}"
                 hora_deteccion = f_min.strftime("%H:%M")
+                fecha_deteccion_str = f_min.strftime("%Y-%m-%d")
+                dt_deteccion = f_min
 
         return FtthReporte(
             planos=planos,
@@ -114,7 +184,9 @@ def parse_ftth_excel(file_bytes: bytes, filename: str = "") -> FtthReporte:
             arrived_on_str=arrived_on_str,
             hora_deteccion=hora_deteccion,
             ok=True,
-            error=""
+            error="",
+            fecha_deteccion_str=fecha_deteccion_str,
+            dt_deteccion=dt_deteccion
         )
 
     except Exception as exc:
@@ -123,7 +195,7 @@ def parse_ftth_excel(file_bytes: bytes, filename: str = "") -> FtthReporte:
 
 def parse_ftth_text(text: str) -> FtthReporte:
     """
-    Parsea texto copiado desde Huawei NCE/iManager (formato TSV con cabecera).
+    Parsea texto copiado desde Huawei NCE/iManager (formato TSV o tabla con cabecera).
     Columnas esperadas: Operation, Comments, Arrived On (ST), Last Occurred (ST),
     Occurrences, User Label, Severity, Alarm ID, Name, Alarm Source, Other Information, ...
     Devuelve un FtthReporte igual que parse_ftth_excel.
@@ -138,7 +210,7 @@ def parse_ftth_text(text: str) -> FtthReporte:
     # Detectar la fila cabecera (contiene "User Label" o "Arrived On")
     header_idx = None
     for i, line in enumerate(lines):
-        if "user label" in line.lower() or "arrived on" in line.lower():
+        if re.search(r"user\s*label", line, re.I) or re.search(r"arrived\s*on", line, re.I):
             header_idx = i
             break
 
@@ -146,19 +218,23 @@ def parse_ftth_text(text: str) -> FtthReporte:
         return FtthReporte([], 0, [], "", "", False,
                            "No se detectó cabecera (columnas 'User Label' / 'Arrived On').")
 
-    # Parsear cabecera
-    headers = [h.strip().lower() for h in lines[header_idx].split("\t")]
+    raw_header = lines[header_idx]
+    delim = "\t" if "\t" in raw_header else ("," if "," in raw_header else None)
+    if delim:
+        headers = [re.sub(r"\s+", " ", h).strip().lower() for h in raw_header.split(delim)]
+    else:
+        headers = [re.sub(r"\s+", " ", h).strip().lower() for h in re.split(r"\s{2,}", raw_header)]
 
-    def col(name: str) -> int | None:
+    def col(pat: str) -> int | None:
         for i, h in enumerate(headers):
-            if name in h:
+            if re.search(pat, h, re.IGNORECASE):
                 return i
         return None
 
-    idx_user_label   = col("user label")
-    idx_arrived_on   = col("arrived on")
-    idx_alarm_source = col("alarm source")
-    idx_other_info   = col("other information")
+    idx_user_label   = col(r"user\s*label")
+    idx_arrived_on   = col(r"arrived\s*on")
+    idx_alarm_source = col(r"alarm\s*source")
+    idx_other_info   = col(r"other\s*information")
 
     if idx_user_label is None or idx_other_info is None:
         return FtthReporte([], 0, [], "", "", False,
@@ -171,17 +247,17 @@ def parse_ftth_text(text: str) -> FtthReporte:
     for line in lines[header_idx + 1:]:
         if not line.strip():
             continue
-        parts = line.split("\t")
+        parts = line.split(delim) if delim else re.split(r"\s{2,}", line)
 
         def get(idx):
             if idx is None or idx >= len(parts):
                 return ""
             return parts[idx].strip()
 
-        user_label  = get(idx_user_label)
-        other_info  = get(idx_other_info)
+        user_label   = get(idx_user_label)
+        other_info   = get(idx_other_info)
         alarm_source = get(idx_alarm_source) if idx_alarm_source is not None else ""
-        arrived_on  = get(idx_arrived_on) if idx_arrived_on is not None else ""
+        arrived_on   = get(idx_arrived_on) if idx_arrived_on is not None else ""
 
         if not user_label:
             continue
@@ -203,11 +279,9 @@ def parse_ftth_text(text: str) -> FtthReporte:
             olts_set.add(alarm_source)
 
         if arrived_on:
-            try:
-                from datetime import datetime as _dt
-                fechas_list.append(_dt.fromisoformat(arrived_on))
-            except Exception:
-                pass
+            dt_parsed = _parse_flexible_datetime(arrived_on)
+            if dt_parsed:
+                fechas_list.append(dt_parsed)
 
     if not planos_map:
         return FtthReporte([], 0, [], "", "", False,
@@ -222,6 +296,8 @@ def parse_ftth_text(text: str) -> FtthReporte:
 
     arrived_on_str = ""
     hora_deteccion = ""
+    fecha_deteccion_str = ""
+    dt_deteccion = None
     if fechas_list:
         f_min = min(fechas_list)
         f_max = max(fechas_list)
@@ -229,6 +305,8 @@ def parse_ftth_text(text: str) -> FtthReporte:
         max_str = f_max.strftime("%Y-%m-%d %H:%M:%S")
         arrived_on_str = min_str if min_str == max_str else f"{min_str} a {max_str}"
         hora_deteccion = f_min.strftime("%H:%M")
+        fecha_deteccion_str = f_min.strftime("%Y-%m-%d")
+        dt_deteccion = f_min
 
     return FtthReporte(
         planos=planos,
@@ -237,7 +315,10 @@ def parse_ftth_text(text: str) -> FtthReporte:
         arrived_on_str=arrived_on_str,
         hora_deteccion=hora_deteccion,
         ok=True,
-        error=""
+        error="",
+        fecha_deteccion_str=fecha_deteccion_str,
+        dt_deteccion=dt_deteccion
     )
+
 
 

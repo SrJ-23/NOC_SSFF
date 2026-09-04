@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOC Assistant - Servicios Fijos</title>
+    <title>NOC Servicios Fijos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -13,18 +13,23 @@
         #main-sidebar {
             transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
         .sidebar-text {
             transition: opacity 0.2s ease, transform 0.2s ease;
             white-space: nowrap;
         }
+
         .sidebar-collapsed #main-sidebar {
-            width: 4.5rem; /* 72px */
+            width: 4.5rem;
+            /* 72px */
         }
+
         .sidebar-collapsed .sidebar-text,
         .sidebar-collapsed .sidebar-header-text,
         .sidebar-collapsed .sidebar-footer-text {
             display: none;
         }
+
         .sidebar-collapsed .sidebar-nav-item {
             justify-content: center;
             padding-left: 0.5rem;
@@ -36,17 +41,20 @@
 <body class="h-full flex text-slate-100 font-sans antialiased overflow-hidden">
 
     <!-- Panel de Navegación Lateral Deslizable (Sidebar) -->
-    <aside id="main-sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between shrink-0 select-none relative z-30 shadow-2xl">
+    <aside id="main-sidebar"
+        class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between shrink-0 select-none relative z-30 shadow-2xl">
         <div>
             <!-- Header del Sidebar con botón de colapso -->
             <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
                 <div class="flex items-center space-x-2.5 overflow-hidden">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center shrink-0 text-indigo-400">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center shrink-0 text-indigo-400">
                         <i class="fa-solid fa-satellite-dish animate-pulse text-sm"></i>
                     </div>
                     <div class="sidebar-header-text overflow-hidden">
-                        <h1 class="text-xs font-black tracking-wider text-indigo-300 truncate">NOC ASSISTANT</h1>
-                        <p class="text-[9px] text-slate-500 uppercase tracking-widest font-semibold truncate">Servicios Fijos</p>
+                        <h1 class="text-xs font-black tracking-wider text-indigo-300 truncate">NOC SERVICIOS FIJOS</h1>
+                        <p class="text-[9px] text-slate-500 uppercase tracking-widest font-semibold truncate">Servicios
+                            Fijos</p>
                     </div>
                 </div>
                 <!-- Botón Deslizar / Colapsar -->
@@ -62,19 +70,22 @@
                 <a href="/"
                     class="sidebar-nav-item flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent hover:border-slate-800/60 transition group"
                     title="Averías en Curso">
-                    <i class="fa-solid fa-rectangle-list w-5 text-center text-slate-400 group-hover:text-indigo-400 text-sm"></i>
+                    <i
+                        class="fa-solid fa-rectangle-list w-5 text-center text-slate-400 group-hover:text-indigo-400 text-sm"></i>
                     <span class="sidebar-text text-xs font-semibold">Averías en Curso</span>
                 </a>
                 <a href="/historica"
                     class="sidebar-nav-item flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent hover:border-slate-800/60 transition group"
                     title="Histórica">
-                    <i class="fa-solid fa-clock-rotate-left w-5 text-center text-slate-400 group-hover:text-indigo-400 text-sm"></i>
+                    <i
+                        class="fa-solid fa-clock-rotate-left w-5 text-center text-slate-400 group-hover:text-indigo-400 text-sm"></i>
                     <span class="sidebar-text text-xs font-semibold">Histórica</span>
                 </a>
                 <a href="/nueva-averia"
                     class="sidebar-nav-item flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-900 hover:text-white border border-transparent hover:border-slate-800/60 transition group"
                     title="Registro Manual">
-                    <i class="fa-solid fa-circle-plus w-5 text-center text-slate-400 group-hover:text-indigo-400 text-sm"></i>
+                    <i
+                        class="fa-solid fa-circle-plus w-5 text-center text-slate-400 group-hover:text-indigo-400 text-sm"></i>
                     <span class="sidebar-text text-xs font-semibold">Registro Manual</span>
                 </a>
             </nav>
@@ -96,7 +107,8 @@
         {% if messages %}
         <div class="px-6 pt-4 space-y-2">
             {% for category, msg in messages %}
-            <div class="p-3.5 rounded-xl text-xs font-medium bg-slate-950 border border-slate-800 text-slate-200 flex items-center justify-between shadow-lg">
+            <div
+                class="p-3.5 rounded-xl text-xs font-medium bg-slate-950 border border-slate-800 text-slate-200 flex items-center justify-between shadow-lg">
                 <span class="flex items-center space-x-2">
                     <i class="fa-solid fa-circle-info text-indigo-400"></i>
                     <span>{{ msg }}</span>
@@ -121,7 +133,7 @@
             const body = document.body;
             const icon = document.getElementById("sidebar-toggle-icon");
             const isCollapsed = body.classList.toggle("sidebar-collapsed");
-            
+
             if (icon) {
                 if (isCollapsed) {
                     icon.classList.remove("fa-angles-left");
@@ -133,11 +145,11 @@
             }
             try {
                 localStorage.setItem("noc_sidebar_collapsed", isCollapsed ? "1" : "0");
-            } catch (e) {}
+            } catch (e) { }
         }
 
         // Restaurar estado guardado
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             try {
                 if (localStorage.getItem("noc_sidebar_collapsed") === "1") {
                     document.body.classList.add("sidebar-collapsed");
@@ -147,7 +159,7 @@
                         icon.classList.add("fa-angles-right");
                     }
                 }
-            } catch (e) {}
+            } catch (e) { }
         });
     </script>
 </body>

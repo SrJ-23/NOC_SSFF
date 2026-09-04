@@ -203,17 +203,21 @@ def dashboard():
         
         # Extraer OLT / Troncal o Anillo
         olt_troncal = ""
-        m_olt = re.search(r"OLT:\s*([^\n]+)", inc.observaciones, re.IGNORECASE)
-        if m_olt:
-            olt_troncal = m_olt.group(1).strip()
+        m_eti = re.search(r"ETIQUETA_FALLA:\s*([^\n]+)", inc.observaciones)
+        if m_eti:
+            olt_troncal = m_eti.group(1).strip()
         else:
-            m_anillo = re.search(r"Anillo\s*(\d+)", inc.observaciones, re.IGNORECASE)
-            if m_anillo:
-                olt_troncal = f"Anillo {m_anillo.group(1)}"
+            m_olt = re.search(r"OLT:\s*([^\n]+)", inc.observaciones, re.IGNORECASE)
+            if m_olt:
+                olt_troncal = m_olt.group(1).strip()
             else:
-                m_cmts = re.search(r"CMTS:\s*([^\n]+)", inc.observaciones, re.IGNORECASE)
-                if m_cmts:
-                    olt_troncal = m_cmts.group(1).strip()
+                m_anillo = re.search(r"Anillo\s*(\d+)", inc.observaciones, re.IGNORECASE)
+                if m_anillo:
+                    olt_troncal = f"Anillo {m_anillo.group(1)}"
+                else:
+                    m_cmts = re.search(r"CMTS:\s*([^\n]+)", inc.observaciones, re.IGNORECASE)
+                    if m_cmts:
+                        olt_troncal = m_cmts.group(1).strip()
 
         inc_dto = {
             "obj": inc,
@@ -1079,6 +1083,10 @@ def ftth_confirmar():
     if corp_detalle:
         obs += f"\nCORP_ADICIONAL: {corp_detalle.replace(chr(10), ' | ')}"
 
+    etiqueta_falla = request.form.get("etiqueta_falla", "").strip()
+    if etiqueta_falla:
+        obs += f"\nETIQUETA_FALLA: {etiqueta_falla}"
+
     nueva = incidencia_service.crear(
         inc=inc_code,
         tipo=TipoIncidencia.FTTH,
@@ -1361,6 +1369,13 @@ def actualizar(id_):
                 else:
                     obs_actualizada += f"\n{corp_tag}"
 
+            etiqueta_falla = request.form.get("etiqueta_falla", "").strip()
+            if etiqueta_falla:
+                if re.search(r"ETIQUETA_FALLA:", obs_actualizada):
+                    obs_actualizada = re.sub(r"ETIQUETA_FALLA:[^\n]*", f"ETIQUETA_FALLA: {etiqueta_falla}", obs_actualizada)
+                else:
+                    obs_actualizada += f"\nETIQUETA_FALLA: {etiqueta_falla}"
+
         
         inc_actualizada = replace(
             inc,
@@ -1385,6 +1400,9 @@ def actualizar(id_):
         if m_co:
             correctivo_actual = m_co.group(1).strip()
 
+        m_eti = re.search(r"ETIQUETA_FALLA:\s*([^\n]+)", inc.observaciones)
+        etiqueta_falla_actual = m_eti.group(1).strip() if m_eti else ""
+
         m_hfc = re.search(r"HFC_ADICIONAL:\s*(\d+)\s*nodos?,\s*(\d+)\s*afectados", inc.observaciones)
         hfc_nodos_actual = m_hfc.group(1) if m_hfc else ""
         hfc_afectados_actual = m_hfc.group(2) if m_hfc else ""
@@ -1398,6 +1416,7 @@ def actualizar(id_):
         top_updates = [item.replace("{bosf}", bosf_val) for item in TOP_UPDATES_TEMPLATE]
         causa_raiz_actual = None
         correctivo_actual = None
+        etiqueta_falla_actual = ""
         hfc_nodos_actual = ""
         hfc_afectados_actual = ""
         mbts_actual = ""
@@ -1414,6 +1433,7 @@ def actualizar(id_):
         correctivos=FTTH_CORRECTIVOS,
         causa_raiz_actual=causa_raiz_actual,
         correctivo_actual=correctivo_actual,
+        etiqueta_falla_actual=etiqueta_falla_actual,
         hfc_nodos_actual=hfc_nodos_actual,
         hfc_afectados_actual=hfc_afectados_actual,
         mbts_actual=mbts_actual,

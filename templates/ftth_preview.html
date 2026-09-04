@@ -115,7 +115,7 @@
             </div>
 
             <!-- Formulario de configuración -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 pb-4">
+            <div class="grid grid-cols-2 {% if grupo.planos | length >= 2 %}md:grid-cols-5{% else %}md:grid-cols-4{% endif %} gap-3 px-5 pb-4">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Ticket INC</label>
                     <input type="text" name="inc" placeholder="INC000..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono">
@@ -130,6 +130,17 @@
                         <option>Degradacion de Senal FTTH</option>
                     </select>
                 </div>
+                {% if grupo.planos | length >= 2 %}
+                <div>
+                    <label class="block text-[10px] font-bold text-amber-400 uppercase mb-1 flex items-center justify-between">
+                        <span>Plano/Troncal Falla</span>
+                        <span class="text-[9px] text-slate-500 lowercase">(mensaje)</span>
+                    </label>
+                    <input type="text" name="etiqueta_falla" value="{{ grupo.planos[0].plano }}"
+                        title="Texto que aparecerá entre paréntesis en la línea de FALLA del mensaje (ej: Troncal 4 o {{ grupo.planos[0].plano }})"
+                        class="w-full bg-slate-900 border border-amber-600/60 rounded-lg p-2 text-xs text-amber-200 focus:outline-none focus:border-amber-400 font-mono">
+                </div>
+                {% endif %}
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">BOSF Asignado</label>
                     <select name="bosf" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">

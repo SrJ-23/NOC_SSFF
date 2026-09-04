@@ -75,7 +75,7 @@
             <p class="text-[11px] font-bold text-teal-400 uppercase tracking-wider">
                 <i class="fa-solid fa-microscope mr-1.5"></i>Diagnóstico FTTH (opcional — solo modifica si aplica)
             </p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Causa
                         Raíz</label>
@@ -98,14 +98,22 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Plano/Troncal en Falla
+                    </label>
+                    <input type="text" name="etiqueta_falla" value="{{ etiqueta_falla_actual or '' }}"
+                        placeholder="Ej: Troncal 4 o Anillo S01"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono">
+                </div>
             </div>
-            {% if causa_raiz_actual or correctivo_actual %}
+            {% if causa_raiz_actual or correctivo_actual or etiqueta_falla_actual %}
             <div class="text-[10px] text-slate-500 pt-1">
                 <i class="fa-solid fa-circle-check text-teal-600 mr-1"></i>
                 Registrado:
                 {% if causa_raiz_actual %}<strong class="text-slate-400">CR: {{ causa_raiz_actual }}</strong>{% endif %}
-                {% if correctivo_actual %} · <strong class="text-slate-400">CO: {{ correctivo_actual }}</strong>{% endif
-                %}
+                {% if correctivo_actual %} · <strong class="text-slate-400">CO: {{ correctivo_actual }}</strong>{% endif %}
+                {% if etiqueta_falla_actual %} · <strong class="text-slate-400">Troncal/Plano: {{ etiqueta_falla_actual }}</strong>{% endif %}
             </div>
             {% endif %}
 

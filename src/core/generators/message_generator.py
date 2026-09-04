@@ -160,14 +160,20 @@ def generate_whatsapp_message(
     if incidencia.tipo == TipoIncidencia.FTTH:
         tipo_falla_str = incidencia.tipo_falla or "Caida de OLT FTTH"
 
-        # Plano principal (primer plano) para mostrarlo en la linea de falla
-        plano_id_ftth = ""
-        if planos_match:
-            primer_p = planos_match.group(1).split(",")[0].strip()
-            plano_id_ftth = re.split(r"\s*\(", primer_p)[0].strip()  # quita "(48)"
+        # Verificar si hay una etiqueta personalizada (Troncal / Plano / Anillo) en observaciones
+        etiqueta_m = re.search(r"ETIQUETA_FALLA:\s*([^\n]+)", incidencia.observaciones)
+        if etiqueta_m and etiqueta_m.group(1).strip():
+            val = etiqueta_m.group(1).strip()
+            val = re.sub(r"^\((.*)\)$", r"\1", val).strip()  # evitar doble paréntesis si el usuario lo escribe
+            plano_display = f" ({val})"
+        else:
+            # Plano principal (primer plano) para mostrarlo en la linea de falla
+            plano_id_ftth = ""
+            if planos_match:
+                primer_p = planos_match.group(1).split(",")[0].strip()
+                plano_id_ftth = re.split(r"\s*\(", primer_p)[0].strip()  # quita "(48)"
+            plano_display = f" ({plano_id_ftth})" if plano_id_ftth else ""
 
-        # Linea de falla con plano entre parentesis
-        plano_display = f" ({plano_id_ftth})" if plano_id_ftth else ""
         linea_falla = (
             f"{tipo_falla_str} en Departamento de {departamento.upper()}, "
             f"prov. de {provincia.upper()} Distrito de {distrito.upper()}"

@@ -1056,6 +1056,29 @@ def ftth_confirmar():
     if bosf_val:
         obs += f"[{dt_inicio.strftime('%H:%M')}h] Se deriva a BOSF {bosf_val} para su atención."
 
+    # Servicios adicionales de otros NOC (HFC / MBTS / Corporativo)
+    hfc_nodos = request.form.get("hfc_nodos", "").strip()
+    hfc_clientes_afectados = request.form.get("hfc_clientes_afectados", "").strip()
+    mbts_detalle = request.form.get("mbts_detalle", "").strip()
+    corp_detalle = request.form.get("corp_detalle", "").strip()
+
+    if hfc_nodos or hfc_clientes_afectados:
+        hfc_nodos_val = hfc_nodos or "0"
+        hfc_cli_val = hfc_clientes_afectados or "0"
+        distrito_target = primer_plano_obj.distrito if primer_plano_obj else distritos_str
+        total_hfc_distrito = sum(
+            p.clientes for p in planos_repo.listar_todos()
+            if p.tecnologia.upper() == "HFC"
+            and p.distrito.strip().upper() == (distrito_target or "").strip().upper()
+        ) if distrito_target else 0
+        obs += f"\nHFC_ADICIONAL: {hfc_nodos_val} nodos, {hfc_cli_val} afectados, total_hfc={total_hfc_distrito}"
+
+    if mbts_detalle:
+        obs += f"\nMBTS_ADICIONAL: {mbts_detalle.replace(chr(10), ' | ')}"
+
+    if corp_detalle:
+        obs += f"\nCORP_ADICIONAL: {corp_detalle.replace(chr(10), ' | ')}"
+
     nueva = incidencia_service.crear(
         inc=inc_code,
         tipo=TipoIncidencia.FTTH,
@@ -1273,9 +1296,12 @@ def actualizar(id_):
         hora = request.form.get("hora") or datetime.datetime.now().strftime("%H:%M")
         novedad = request.form.get("novedad", "").strip()
         causa_raiz = request.form.get("causa_raiz", "").strip()
-        correctivo = request.form.get("correctivo", "").strip()
-
-        linea_nueva = f"\n[{hora}h] {tipo_actualizacion}: {novedad}" if novedad else f"\n[{hora}h] {tipo_actualizacion}"
+        if novedad:
+            linea_nueva = f"\n[{hora}h] {tipo_actualizacion}: {novedad}"
+        elif inc.tipo == TipoIncidencia.FTTH:
+            linea_nueva = f"\n[{hora}h] {tipo_actualizacion}: Actualización de impacto"
+        else:
+            linea_nueva = f"\n[{hora}h] {tipo_actualizacion}"
         obs_actualizada = inc.observaciones + linea_nueva
 
         # Para FTTH: guardar/actualizar causa raiz y correctivo en observaciones
@@ -1347,7 +1373,7 @@ def actualizar(id_):
         return redirect(url_for("dashboard"))
         
     bosf_val = inc.bosf or "[Nombre]"
-    # Para FTTH, usar actualizaciones especificas + causas raiz + correctivos
+    # Para FTTH, usar actualizaciones especificas + causas raiz + correctivos + servicios adicionales
     if inc.tipo == TipoIncidencia.FTTH:
         top_updates = TOP_UPDATES_FTTH
         causa_raiz_actual = ""
@@ -1358,10 +1384,24 @@ def actualizar(id_):
             causa_raiz_actual = m_cr.group(1).strip()
         if m_co:
             correctivo_actual = m_co.group(1).strip()
+
+        m_hfc = re.search(r"HFC_ADICIONAL:\s*(\d+)\s*nodos?,\s*(\d+)\s*afectados", inc.observaciones)
+        hfc_nodos_actual = m_hfc.group(1) if m_hfc else ""
+        hfc_afectados_actual = m_hfc.group(2) if m_hfc else ""
+
+        m_mbts = re.search(r"MBTS_ADICIONAL:\s*([^\n]+)", inc.observaciones)
+        mbts_actual = m_mbts.group(1).replace(" | ", "\n") if m_mbts else ""
+
+        m_corp = re.search(r"CORP_ADICIONAL:\s*([^\n]+)", inc.observaciones)
+        corp_actual = m_corp.group(1).replace(" | ", "\n") if m_corp else ""
     else:
         top_updates = [item.replace("{bosf}", bosf_val) for item in TOP_UPDATES_TEMPLATE]
         causa_raiz_actual = None
         correctivo_actual = None
+        hfc_nodos_actual = ""
+        hfc_afectados_actual = ""
+        mbts_actual = ""
+        corp_actual = ""
 
     return render_template(
         "actualizar.html",
@@ -1374,6 +1414,10 @@ def actualizar(id_):
         correctivos=FTTH_CORRECTIVOS,
         causa_raiz_actual=causa_raiz_actual,
         correctivo_actual=correctivo_actual,
+        hfc_nodos_actual=hfc_nodos_actual,
+        hfc_afectados_actual=hfc_afectados_actual,
+        mbts_actual=mbts_actual,
+        corp_actual=corp_actual,
     )
 
 

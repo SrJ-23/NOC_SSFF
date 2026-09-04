@@ -118,12 +118,17 @@
                     <span class="flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-amber-300 transition">
                         <i class="fa-solid fa-network-wired text-amber-500/80"></i>
                         ¿Se afectan otros servicios? (Móvil / Corporativo / HFC)
+                        {% if hfc_nodos_actual or mbts_actual or corp_actual %}
+                        <span class="text-[10px] bg-amber-900/50 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded-full font-normal">
+                            Impacto Registrado
+                        </span>
+                        {% endif %}
                     </span>
-                    <i id="icon-servicios-adicionales" class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform duration-200 group-hover:text-amber-300"></i>
+                    <i id="icon-servicios-adicionales" class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform duration-200 group-hover:text-amber-300 {% if hfc_nodos_actual or mbts_actual or corp_actual %}rotate-180{% endif %}"></i>
                 </button>
 
                 <!-- Panel expandible -->
-                <div id="panel-servicios-adicionales" class="hidden mt-3 space-y-4">
+                <div id="panel-servicios-adicionales" class="{% if not (hfc_nodos_actual or mbts_actual or corp_actual) %}hidden{% endif %} mt-3 space-y-4">
 
                     <!-- Afectación HFC -->
                     <div class="bg-indigo-950/30 border border-indigo-800/40 rounded-lg p-3 space-y-2">
@@ -135,19 +140,19 @@
                                 <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
                                     N° de Nodos Afectados
                                 </label>
-                                <input type="number" name="hfc_nodos" min="0" placeholder="0"
+                                <input type="number" name="hfc_nodos" min="0" value="{{ hfc_nodos_actual or '' }}" placeholder="0"
                                     class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
                                     Clientes Afectados HFC
                                 </label>
-                                <input type="number" name="hfc_clientes_afectados" min="0" placeholder="0"
+                                <input type="number" name="hfc_clientes_afectados" min="0" value="{{ hfc_afectados_actual or '' }}" placeholder="0"
                                     class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
                             </div>
                         </div>
                         <p class="text-[10px] text-slate-500 italic">
-                            <i class="fa-solid fa-circle-info mr-1"></i>El total de clientes del anillo se obtiene automáticamente de la base de datos.
+                            <i class="fa-solid fa-circle-info mr-1"></i>El total de clientes del distrito se obtiene automáticamente de la base de datos.
                         </p>
                     </div>
 
@@ -158,7 +163,7 @@
                         </p>
                         <textarea name="mbts_detalle" rows="3"
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-300 focus:outline-none focus:border-violet-500 font-mono resize-none"
-                            placeholder="Ej: 1 de 154 (0.649%) &#10;PROVINCIAS:&#10;* SAN MARTIN: 1 de 39 (2.564%)"></textarea>
+                            placeholder="Ej: 1 de 154 (0.649%) &#10;PROVINCIAS:&#10;* SAN MARTIN: 1 de 39 (2.564%)">{{ mbts_actual or '' }}</textarea>
                     </div>
 
                     <!-- Afectación Corporativo -->
@@ -168,7 +173,7 @@
                         </p>
                         <textarea name="corp_detalle" rows="3"
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-300 focus:outline-none focus:border-rose-500 font-mono resize-none"
-                            placeholder="Ej: PROVINCIA SAN MARTIN: 09 servicios corporativos + 1 ONPE"></textarea>
+                            placeholder="Ej: PROVINCIA SAN MARTIN: 09 servicios corporativos + 1 ONPE">{{ corp_actual or '' }}</textarea>
                     </div>
 
                 </div>
@@ -180,11 +185,12 @@
 
 
         <div>
-            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Detalles del avance
-                (Editable)</label>
-            <textarea id="novedad_field" name="novedad" rows="4" required
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                Detalles del avance {% if es_ftth %}<span class="text-slate-500 font-normal text-[11px]">(Opcional para FTTH si solo actualiza impacto)</span>{% else %}(Editable){% endif %}
+            </label>
+            <textarea id="novedad_field" name="novedad" rows="4" {% if not es_ftth %}required{% endif %}
                 class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
-                placeholder="Escriba o seleccione una plantilla rápida para modificarla..."></textarea>
+                placeholder="{% if es_ftth %}Escriba un avance o deje en blanco si solo está actualizando el impacto / diagnóstico...{% else %}Escriba o seleccione una plantilla rápida para modificarla...{% endif %}"></textarea>
         </div>
 
         <div class="flex space-x-3 pt-2">

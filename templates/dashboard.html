@@ -520,20 +520,32 @@
 
         <!-- Tabs -->
         <div class="flex bg-slate-900 rounded-lg p-1 gap-1">
-            <button id="tab-excel" onclick="switchFtthTab('excel')"
-                class="flex-1 py-2 text-xs font-semibold rounded-md transition flex items-center justify-center gap-1.5 bg-teal-700 text-white">
-                <i class="fa-solid fa-file-excel"></i>Subir Excel
-            </button>
             <button id="tab-paste" onclick="switchFtthTab('paste')"
-                class="flex-1 py-2 text-xs font-semibold rounded-md transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+                class="flex-1 py-2 text-xs font-semibold rounded-md transition flex items-center justify-center gap-1.5 bg-teal-700 text-white">
                 <i class="fa-solid fa-paste"></i>Pegar Texto
+            </button>
+            <button id="tab-excel" onclick="switchFtthTab('excel')"
+                class="flex-1 py-2 text-xs font-semibold rounded-md transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-file-excel"></i>Subir Excel
             </button>
         </div>
 
         <form action="/carga-ftth" method="POST" enctype="multipart/form-data" class="space-y-4" id="form-ftth">
 
-            <!-- Panel Excel -->
-            <div id="panel-ftth-excel">
+            <!-- Panel Pegar Texto (1ra opción) -->
+            <div id="panel-ftth-paste">
+                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    <i class="fa-solid fa-clipboard mr-1 text-teal-400"></i>Pegar datos de Huawei NCE / iManager
+                </label>
+                <textarea name="ftth_paste" id="ftth_paste_area" rows="7"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono leading-relaxed"
+                    placeholder="Selecciona las alarmas en el gestor y pégalas aquí (Ctrl+V)&#10;&#10;Ejemplo:&#10;Operation	Comments	Arrived On (ST)	...	User Label	...	Alarm Source	Other Information&#10;		2026-08-30 23:54:54	...	PISH010-F_TR2F14	...	oltSechura01	...ONTs=1..."></textarea>
+                <p class="text-[10px] text-slate-600 mt-1">El sistema detecta automáticamente planos, ONTs y OLT desde
+                    el texto copiado.</p>
+            </div>
+
+            <!-- Panel Excel (2da opción) -->
+            <div id="panel-ftth-excel" class="hidden">
                 <div id="ftth-drop-zone"
                     class="border-2 border-dashed border-slate-700 hover:border-teal-600 rounded-xl p-7 text-center cursor-pointer transition group"
                     onclick="document.getElementById('ftth_xlsx_input').click()"
@@ -549,18 +561,6 @@
                 </div>
                 <input type="file" id="ftth_xlsx_input" name="ftth_xlsx" accept=".xlsx,.xls" class="hidden"
                     onchange="mostrarNombreArchivo(this)">
-            </div>
-
-            <!-- Panel Pegar Texto -->
-            <div id="panel-ftth-paste" class="hidden">
-                <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    <i class="fa-solid fa-clipboard mr-1 text-teal-400"></i>Pegar datos de Huawei NCE / iManager
-                </label>
-                <textarea name="ftth_paste" id="ftth_paste_area" rows="7"
-                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono leading-relaxed"
-                    placeholder="Selecciona las alarmas en el gestor y pégalas aquí (Ctrl+V)&#10;&#10;Ejemplo:&#10;Operation	Comments	Arrived On (ST)	...	User Label	...	Alarm Source	Other Information&#10;		2026-08-30 23:54:54	...	PISH010-F_TR2F14	...	oltSechura01	...ONTs=1..."></textarea>
-                <p class="text-[10px] text-slate-600 mt-1">El sistema detecta automáticamente planos, ONTs y OLT desde
-                    el texto copiado.</p>
             </div>
 
             <!-- Info -->
@@ -723,6 +723,13 @@
 
     function abrirModal(id) {
         document.getElementById(id).classList.remove('hidden');
+        if (id === 'modal-ftth') {
+            switchFtthTab('paste');
+            setTimeout(() => {
+                const area = document.getElementById('ftth_paste_area');
+                if (area) area.focus();
+            }, 100);
+        }
     }
 
     function cerrarModal(id) {

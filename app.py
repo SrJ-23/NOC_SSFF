@@ -199,6 +199,13 @@ def _obtener_plano_y_clientes(incidencia) -> tuple[str, int]:
     plano_name = planos[0] if planos else ""
     return plano_name, clientes_count
 
+@app.route("/ping")
+@app.route("/health")
+def health_check():
+    """Endpoint ultra-liviano para keep-alive / cron-job (evita sobrecarga y límites de respuesta)."""
+    return "OK", 200, {"Content-Type": "text/plain"}
+
+
 @app.route("/")
 def dashboard():
     """Muestra la lista de incidencias (Averías Pendientes) y modales de carga"""

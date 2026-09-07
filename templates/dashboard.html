@@ -124,18 +124,23 @@
 
             <!-- Filtros Interactivos HFC / FTTH (Toggle: si ninguno está activo, muestra todos) -->
             <div class="flex items-center gap-2">
-                <div class="bg-slate-950 border border-slate-800 rounded-xl p-1 flex items-center space-x-1 shadow-inner">
+                <div
+                    class="bg-slate-950 border border-slate-800 rounded-xl p-1 flex items-center space-x-1 shadow-inner">
                     <button type="button" id="filter-btn-hfc" onclick="toggleFilter('HFC')"
                         class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
                         <i class="fa-solid fa-chart-line text-indigo-400"></i>
                         <span>HFC</span>
-                        <span id="badge-count-hfc" class="text-[10px] px-1.5 py-0.2 bg-slate-900 rounded-full font-mono">{{ incidencias | selectattr('obj.tipo.value', 'equalto', 'HFC') | list | length }}</span>
+                        <span id="badge-count-hfc"
+                            class="text-[10px] px-1.5 py-0.2 bg-slate-900 rounded-full font-mono">{{ incidencias |
+                            selectattr('obj.tipo.value', 'equalto', 'HFC') | list | length }}</span>
                     </button>
                     <button type="button" id="filter-btn-ftth" onclick="toggleFilter('FTTH')"
                         class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
                         <i class="fa-solid fa-network-wired text-teal-400"></i>
                         <span>FTTH</span>
-                        <span id="badge-count-ftth" class="text-[10px] px-1.5 py-0.2 bg-slate-900 rounded-full font-mono">{{ incidencias | selectattr('obj.tipo.value', 'equalto', 'FTTH') | list | length }}</span>
+                        <span id="badge-count-ftth"
+                            class="text-[10px] px-1.5 py-0.2 bg-slate-900 rounded-full font-mono">{{ incidencias |
+                            selectattr('obj.tipo.value', 'equalto', 'FTTH') | list | length }}</span>
                     </button>
                 </div>
 
@@ -183,37 +188,43 @@
 
                                 <!-- SOLO PARA HFC: Mostrar plano(s) afectado(s) -->
                                 {% if inc.obj.tipo.value == 'HFC' and inc.planos_str %}
-                                <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 flex items-center gap-1.5 shadow-sm">
+                                <span
+                                    class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 flex items-center gap-1.5 shadow-sm">
                                     <i class="fa-solid fa-chart-line text-[11px] text-indigo-400"></i>
-                                    <span>Plano{% if inc.planos_count > 1 %}s ({{ inc.planos_count }}){% endif %}: <strong class="text-white">{{ inc.planos_str }}</strong></span>
+                                    <span>Plano{% if inc.planos_count > 1 %}s ({{ inc.planos_count }}){% endif %}:
+                                        <strong class="text-white">{{ inc.planos_str }}</strong></span>
                                 </span>
                                 {% endif %}
 
                                 <!-- SOLO PARA FTTH: si > 2 planos solo troncal/anillo, si <= 2 muestra planos -->
                                 {% if inc.obj.tipo.value == 'FTTH' %}
-                                    {% if inc.planos_count > 2 %}
-                                        <!-- Más de 2 planos: Se muestra SOLO la troncal o anillo -->
-                                        {% if inc.olt_troncal %}
-                                        <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-amber-950/80 border border-amber-700/80 text-amber-300 flex items-center gap-1.5 shadow-sm">
-                                            <i class="fa-solid fa-server text-[11px] text-amber-400"></i>
-                                            <span>Troncal/OLT: <strong class="text-white">{{ inc.olt_troncal }}</strong></span>
-                                        </span>
-                                        {% endif %}
-                                    {% else %}
-                                        <!-- 1 o 2 planos: Muestra los planos y troncal si existe -->
-                                        {% if inc.planos_str %}
-                                        <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-teal-950/80 border border-teal-700/80 text-teal-300 flex items-center gap-1.5 shadow-sm">
-                                            <i class="fa-solid fa-network-wired text-[11px] text-teal-400"></i>
-                                            <span>Plano{% if inc.planos_count > 1 %}s{% endif %}: <strong class="text-white">{{ inc.planos_str }}</strong></span>
-                                        </span>
-                                        {% endif %}
-                                        {% if inc.olt_troncal %}
-                                        <span class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-amber-950/80 border border-amber-700/80 text-amber-300 flex items-center gap-1.5 shadow-sm">
-                                            <i class="fa-solid fa-server text-[11px] text-amber-400"></i>
-                                            <span>Troncal: <strong class="text-white">{{ inc.olt_troncal }}</strong></span>
-                                        </span>
-                                        {% endif %}
-                                    {% endif %}
+                                {% if inc.planos_count > 2 %}
+                                <!-- Más de 2 planos: Se muestra SOLO la troncal o anillo -->
+                                {% if inc.olt_troncal %}
+                                <span
+                                    class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-amber-950/80 border border-amber-700/80 text-amber-300 flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-server text-[11px] text-amber-400"></i>
+                                    <span>Troncal/OLT: <strong class="text-white">{{ inc.olt_troncal }}</strong></span>
+                                </span>
+                                {% endif %}
+                                {% else %}
+                                <!-- 1 o 2 planos: Muestra los planos y troncal si existe -->
+                                {% if inc.planos_str %}
+                                <span
+                                    class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-teal-950/80 border border-teal-700/80 text-teal-300 flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-network-wired text-[11px] text-teal-400"></i>
+                                    <span>Plano{% if inc.planos_count > 1 %}s{% endif %}: <strong class="text-white">{{
+                                            inc.planos_str }}</strong></span>
+                                </span>
+                                {% endif %}
+                                {% if inc.olt_troncal %}
+                                <span
+                                    class="text-xs px-2.5 py-0.5 rounded font-mono font-semibold bg-amber-950/80 border border-amber-700/80 text-amber-300 flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-server text-[11px] text-amber-400"></i>
+                                    <span>Troncal: <strong class="text-white">{{ inc.olt_troncal }}</strong></span>
+                                </span>
+                                {% endif %}
+                                {% endif %}
                                 {% endif %}
 
                                 <span class="text-slate-400 font-normal text-xs">· {{ inc.obj.tipo_falla }}</span>
@@ -290,9 +301,11 @@
             {% endfor %}
 
             <!-- Mensaje de filtro vacío -->
-            <div id="filter-empty-state" class="hidden text-center py-12 bg-slate-950 border border-slate-800 rounded-xl">
+            <div id="filter-empty-state"
+                class="hidden text-center py-12 bg-slate-950 border border-slate-800 rounded-xl">
                 <i class="fa-solid fa-filter text-slate-600 text-2xl mb-2 block"></i>
-                <p class="text-slate-400 text-sm font-medium">No hay averías activas para la tecnología seleccionada.</p>
+                <p class="text-slate-400 text-sm font-medium">No hay averías activas para la tecnología seleccionada.
+                </p>
             </div>
         </div>
     </div>

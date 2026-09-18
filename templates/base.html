@@ -127,6 +127,126 @@
         </div>
     </main>
 
+    <!-- Modal Pop-Up de Detalle de Incidencia -->
+    <div id="modal-detalle" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 sm:p-6" onclick="if(event.target === this) cerrarModalDetalle()">
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+            <!-- Header Modal -->
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+                <div class="flex items-center space-x-3 overflow-hidden">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400">
+                        <i class="fa-solid fa-file-lines text-base"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                                <span>Detalle de Incidencia:</span>
+                                <span id="modal-det-inc" class="font-mono text-indigo-300">—</span>
+                            </h3>
+                            <span id="modal-det-badge-tipo" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700"></span>
+                            <span id="modal-det-badge-estado" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700"></span>
+                        </div>
+                        <p id="modal-det-subtitulo" class="text-xs text-slate-400 truncate mt-0.5"></p>
+                    </div>
+                </div>
+                <button type="button" onclick="cerrarModalDetalle()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition" title="Cerrar (Esc)">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body con Scroll -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                <!-- Loading State -->
+                <div id="modal-det-loading" class="py-16 text-center space-y-3">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-500"></i>
+                    <p class="text-xs text-slate-400 font-medium">Cargando detalles de la incidencia...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="modal-det-error" class="hidden p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                    <span id="modal-det-error-msg">Error al cargar la información.</span>
+                </div>
+
+                <!-- Content Grid -->
+                <div id="modal-det-content" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Mensaje Estructurado WhatsApp -->
+                    <div class="lg:col-span-2 bg-slate-900/70 border border-slate-800/90 rounded-xl p-4 sm:p-5 flex flex-col space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                <i class="fa-brands fa-whatsapp text-emerald-400 text-sm"></i>
+                                <span>Mensaje Generado para WhatsApp</span>
+                            </span>
+                            <button id="modal-det-btn-copiar" type="button" onclick="copiarMensajeModalDetalle()" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow flex items-center space-x-1.5 cursor-pointer">
+                                <i class="fa-solid fa-clipboard text-xs"></i>
+                                <span>Copiar Mensaje</span>
+                            </button>
+                        </div>
+                        <textarea id="modal-det-whatsapp-text" readonly class="w-full h-72 sm:h-80 bg-slate-950 border border-slate-800 rounded-lg p-3.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 select-all resize-none shadow-inner leading-relaxed"></textarea>
+                    </div>
+
+                    <!-- Información de Campo y Supervisor -->
+                    <div class="bg-slate-900/70 border border-slate-800/90 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-5">
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Contratista Asignado</h4>
+                                <p id="modal-det-contratista-nombre" class="text-sm font-semibold text-slate-200">Sin asignar</p>
+                                <p id="modal-det-contratista-cargo" class="text-xs text-slate-400 mt-0.5">Rol no especificado</p>
+                            </div>
+
+                            <div>
+                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Contacto Directo</h4>
+                                <div class="flex items-center space-x-2">
+                                    <p id="modal-det-telefono" class="text-sm font-mono text-indigo-400 font-semibold">—</p>
+                                    <a id="modal-det-telefono-link" href="#" class="hidden text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1" title="Llamar">
+                                        <i class="fa-solid fa-phone text-[10px]"></i>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="pt-3 border-t border-slate-800 space-y-2">
+                                <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-map-location-dot text-indigo-400"></i>
+                                    <span>Ubicación y Equipo</span>
+                                </h4>
+                                <div class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs space-y-1">
+                                    <p class="text-slate-300">
+                                        <span class="text-slate-500 font-semibold">Hub:</span>
+                                        <strong id="modal-det-hub" class="text-slate-200 font-mono ml-1">—</strong>
+                                    </p>
+                                    <p class="text-slate-300">
+                                        <span class="text-slate-500 font-semibold">CMTS/OLT:</span>
+                                        <strong id="modal-det-cmts" class="text-slate-200 font-mono ml-1">—</strong>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div id="modal-det-planos-section" class="space-y-1.5">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                                    <span>Planos Afectados</span>
+                                    <span id="modal-det-planos-count" class="text-indigo-400 font-mono">0</span>
+                                </p>
+                                <div id="modal-det-planos-list" class="divide-y divide-slate-800/80 bg-slate-950 border border-slate-800 rounded-lg overflow-hidden max-h-44 overflow-y-auto">
+                                    <!-- Planos dinámicos -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Modal -->
+            <div class="px-6 py-3.5 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between text-xs">
+                <a id="modal-det-link-directo" href="#" target="_blank" class="text-slate-400 hover:text-indigo-300 transition flex items-center gap-1.5 font-medium">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    <span>Abrir en página independiente</span>
+                </a>
+                <button type="button" onclick="cerrarModalDetalle()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-1.5 rounded-lg font-semibold transition border border-slate-700 cursor-pointer">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Manejador del estado del Sidebar deslizable
         function toggleSidebar() {
@@ -160,6 +280,143 @@
                     }
                 }
             } catch (e) { }
+        });
+
+        // Manejadores para el Modal Pop-Up de Detalle de Incidencia
+        async function abrirModalDetalle(id) {
+            const modal = document.getElementById('modal-detalle');
+            if (!modal) return;
+            
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            
+            const loading = document.getElementById('modal-det-loading');
+            const content = document.getElementById('modal-det-content');
+            const errorEl = document.getElementById('modal-det-error');
+            
+            if (loading) loading.classList.remove('hidden');
+            if (content) content.classList.add('hidden');
+            if (errorEl) errorEl.classList.add('hidden');
+            
+            try {
+                const resp = await fetch(`/api/detalle/${id}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                if (!data.ok) throw new Error(data.error || 'No se pudo cargar el detalle');
+                
+                document.getElementById('modal-det-inc').innerText = data.inc.inc || '—';
+                
+                const badgeTipo = document.getElementById('modal-det-badge-tipo');
+                if (badgeTipo) {
+                    badgeTipo.innerText = data.inc.tipo || '';
+                    badgeTipo.className = data.inc.tipo === 'FTTH' 
+                        ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800'
+                        : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-950 text-violet-300 border border-violet-800';
+                }
+                
+                const badgeEstado = document.getElementById('modal-det-badge-estado');
+                if (badgeEstado) {
+                    badgeEstado.innerText = data.inc.estado || '';
+                    badgeEstado.className = data.inc.estado === 'CERRADA'
+                        ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800'
+                        : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-800';
+                }
+
+                const sub = document.getElementById('modal-det-subtitulo');
+                if (sub) {
+                    sub.innerText = `${data.inc.departamento || ''}, ${data.inc.provincia || ''} - ${data.inc.distrito || ''} | ${data.inc.tipo_falla || ''}`;
+                }
+
+                document.getElementById('modal-det-whatsapp-text').value = data.whatsapp_msg || '';
+                document.getElementById('modal-det-contratista-nombre').innerText = data.contratista.nombre || 'Sin asignar';
+                document.getElementById('modal-det-contratista-cargo').innerText = data.contratista.cargo || 'Rol no especificado';
+                
+                const telEl = document.getElementById('modal-det-telefono');
+                const telLink = document.getElementById('modal-det-telefono-link');
+                telEl.innerText = data.contratista.telefono || '—';
+                if (data.contratista.telefono && data.contratista.telefono !== '—') {
+                    telLink.href = `tel:${data.contratista.telefono.replace(/\s+/g, '')}`;
+                    telLink.classList.remove('hidden');
+                } else {
+                    telLink.classList.add('hidden');
+                }
+                
+                document.getElementById('modal-det-hub').innerText = data.ubicacion.hub || '—';
+                document.getElementById('modal-det-cmts').innerText = data.ubicacion.cmts_olt || '—';
+
+                const planosList = document.getElementById('modal-det-planos-list');
+                const planosCount = document.getElementById('modal-det-planos-count');
+                const planosSec = document.getElementById('modal-det-planos-section');
+                if (data.planos_detalle && data.planos_detalle.length > 0) {
+                    planosSec.classList.remove('hidden');
+                    planosCount.innerText = `(${data.planos_detalle.length})`;
+                    planosList.innerHTML = data.planos_detalle.map(p => `
+                        <div class="flex items-center justify-between px-3 py-1.5 text-xs hover:bg-slate-900 transition">
+                            <span class="font-mono font-bold text-indigo-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle text-[6px] text-indigo-400"></i>
+                                <span>${p.id}</span>
+                            </span>
+                            <span class="font-mono font-semibold text-amber-400 text-xs">
+                                ${p.clientes} cli.
+                            </span>
+                        </div>
+                    `).join('');
+                } else {
+                    planosSec.classList.add('hidden');
+                }
+
+                const linkDirecto = document.getElementById('modal-det-link-directo');
+                if (linkDirecto) linkDirecto.href = `/detalle/${data.inc.id}`;
+
+                if (loading) loading.classList.add('hidden');
+                if (content) content.classList.remove('hidden');
+
+            } catch (err) {
+                console.error("Error cargando detalle:", err);
+                if (loading) loading.classList.add('hidden');
+                if (errorEl) {
+                    document.getElementById('modal-det-error-msg').innerText = "No se pudo cargar los detalles de la incidencia.";
+                    errorEl.classList.remove('hidden');
+                }
+            }
+        }
+
+        function cerrarModalDetalle() {
+            const modal = document.getElementById('modal-detalle');
+            if (modal) modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function copiarMensajeModalDetalle() {
+            const ta = document.getElementById('modal-det-whatsapp-text');
+            if (!ta) return;
+            ta.select();
+            ta.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(ta.value).then(() => {
+                const btn = document.getElementById('modal-det-btn-copiar');
+                if (btn) {
+                    const originalHtml = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check text-xs"></i> <span>¡Copiado!</span>';
+                    btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+                    btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+                    setTimeout(() => {
+                        btn.innerHTML = originalHtml;
+                        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+                        btn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+                    }, 2000);
+                }
+            }).catch(e => {
+                alert("Error al copiar texto: " + e);
+            });
+        }
+
+        // Soporte tecla ESC para cerrar modal de detalle
+        window.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                cerrarModalDetalle();
+            }
         });
     </script>
 </body>

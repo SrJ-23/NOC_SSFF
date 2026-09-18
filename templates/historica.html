@@ -121,11 +121,11 @@
 
                     <!-- Acciones -->
                     <div class="flex justify-end space-x-2 text-xs pt-1">
-                        <a href="/detalle/{{ item.obj.id }}"
-                            class="bg-slate-900 hover:bg-slate-800 text-slate-300 px-3.5 py-1.5 rounded-lg font-semibold transition border border-slate-800 flex items-center space-x-1.5">
+                        <button type="button" onclick="abrirModalDetalle('{{ item.obj.id }}')"
+                            class="bg-slate-900 hover:bg-slate-800 text-slate-300 px-3.5 py-1.5 rounded-lg font-semibold transition border border-slate-800 flex items-center space-x-1.5 cursor-pointer">
                             <i class="fa-solid fa-file-lines text-indigo-400"></i>
                             <span>Ver Detalle / Mensaje</span>
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>

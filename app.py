@@ -7,6 +7,7 @@ os.environ["TZ"] = "America/Lima"
 if hasattr(time, "tzset"):
     time.tzset()
 
+import uuid
 from flask import Flask, render_template, request, redirect, url_for, flash
 import datetime
 import json
@@ -19,9 +20,10 @@ from src.repositories.incidencias_repository import IncidenciasRepository
 from src.repositories.planos_repository import PlanosRepository
 from src.repositories.personal_repository import PersonalRepository
 from src.services.incidencia_service import IncidenciaService
-from src.core.models import TipoIncidencia, ServicioAfectado, EstadoIncidencia
+from src.core.models import TipoIncidencia, ServicioAfectado, EstadoIncidencia, Incidencia
 from src.core.parsers.hfc_parser import parse_hfc_text
 from src.core.parsers.ftth_parser import parse_ftth_excel, parse_ftth_text
+from src.core.parsers.previous_shift_parser import separar_bloques_averias, parsear_bloque_averia
 from src.core.generators.message_generator import generate_whatsapp_message
 from src.utils.time_utils import calcular_semaforo, formatear_duracion, now_peru
 
@@ -1285,11 +1287,20 @@ def procesar_cierre_masivo():
     return redirect(url_for("dashboard"))
 
 
+@app.route("/api/detalle/<id_>")
 @app.route("/detalle/<id_>")
 def detalle(id_):
-    """Muestra detalles del contratista y copia el texto estructurado para WhatsApp"""
+    """Muestra detalles del contratista y copia el texto estructurado para WhatsApp (soporta JSON para pop-up)."""
     inc = incidencias_repo.obtener_por_id(id_)
+    is_json_request = (
+        request.path.startswith("/api/")
+        or request.args.get("format") == "json"
+        or request.headers.get("Accept") == "application/json"
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
     if not inc:
+        if is_json_request:
+            return {"ok": False, "error": "Incidencia no encontrada."}, 404
         flash("Incidencia no encontrada.", "danger")
         return redirect(url_for("dashboard"))
         
@@ -1329,6 +1340,35 @@ def detalle(id_):
     
     whatsapp_msg = generate_whatsapp_message(inc, plano_obj, tel)
     
+    if is_json_request:
+        hub_val = plano_obj.hub if plano_obj and plano_obj.hub else (planos_detalle[0]["hub"] if planos_detalle and planos_detalle[0]["hub"] != "—" else "—")
+        equipo_val = plano_obj.cmts_olt if plano_obj and plano_obj.cmts_olt else (planos_detalle[0]["cmts_olt"] if planos_detalle and planos_detalle[0]["cmts_olt"] != "—" else (olt_val or "—"))
+        return {
+            "ok": True,
+            "inc": {
+                "id": inc.id,
+                "inc": inc.inc,
+                "tipo": inc.tipo.value,
+                "estado": inc.estado.value,
+                "departamento": inc.departamento,
+                "provincia": inc.provincia,
+                "distrito": inc.distrito,
+                "tipo_falla": inc.tipo_falla,
+                "bosf": inc.bosf or "Sin asignar",
+            },
+            "contratista": {
+                "nombre": pers_obj.nombre if pers_obj else (inc.bosf or "Sin asignar"),
+                "cargo": pers_obj.cargo if pers_obj else "Rol no especificado",
+                "telefono": tel or "—",
+            },
+            "ubicacion": {
+                "hub": hub_val,
+                "cmts_olt": equipo_val,
+            },
+            "planos_detalle": planos_detalle,
+            "whatsapp_msg": whatsapp_msg,
+        }
+
     return render_template(
         "detalle.html",
         inc=inc,
@@ -1338,6 +1378,141 @@ def detalle(id_):
         telefono=tel,
         whatsapp_msg=whatsapp_msg
     )
+
+
+@app.route("/api/carga-anterior", methods=["POST"])
+def api_carga_anterior():
+    """Procesa el mensaje consolidado del turno anterior y carga/actualiza las incidencias."""
+    data = request.get_json(silent=True) or {}
+    raw_text = data.get("raw_text") or request.form.get("raw_text", "")
+    if not raw_text.strip():
+        if request.is_json or request.path.startswith("/api/"):
+            return {"ok": False, "error": "El texto del turno anterior está vacío."}, 400
+        flash("El texto ingresado está vacío.", "warning")
+        return redirect(url_for("dashboard"))
+
+    bloques = separar_bloques_averias(raw_text)
+    if not bloques:
+        if request.is_json or request.path.startswith("/api/"):
+            return {"ok": False, "error": "No se detectaron bloques de incidencias válidos en el texto."}, 400
+        flash("No se detectaron bloques de incidencias en el texto.", "warning")
+        return redirect(url_for("dashboard"))
+
+    creadas = 0
+    actualizadas = 0
+    detalles = []
+
+    for b in bloques:
+        p = parsear_bloque_averia(b, planos_repo)
+        
+        # Buscar si ya existe por código INC o por plano activo
+        inc_existente = None
+        if p.inc and p.inc != "EN PROCESO":
+            inc_existente = incidencias_repo.obtener_por_inc(p.inc)
+        
+        if not inc_existente and p.plano:
+            for act in incidencias_repo.listar_activas():
+                p_id, _ = _obtener_plano_y_clientes(act)
+                planos_act = _extraer_planos_de_incidencia(act)
+                if p.plano == p_id or p.plano in planos_act:
+                    inc_existente = act
+                    break
+
+        if inc_existente:
+            # Actualizar incidencia existente
+            inc_act = replace(
+                inc_existente,
+                inc=p.inc if (p.inc and p.inc != "EN PROCESO") else inc_existente.inc,
+                bosf=p.bosf if p.bosf and p.bosf != "Pendiente" else inc_existente.bosf,
+                estado=p.estado,
+                observaciones=p.observaciones,
+                ultima_actualizacion=now_peru()
+            )
+            incidencias_repo.guardar(inc_act)
+            actualizadas += 1
+            detalles.append({
+                "id": inc_act.id,
+                "inc": inc_act.inc,
+                "tipo": inc_act.tipo.value,
+                "accion": "actualizada",
+                "plano": p.plano
+            })
+        else:
+            # Crear nueva incidencia
+            nuevo_id = str(uuid.uuid4())[:8].upper()
+            nueva = Incidencia(
+                id=nuevo_id,
+                inc=p.inc,
+                tipo=p.tipo,
+                estado=p.estado,
+                tipo_falla=p.tipo_falla,
+                departamento=p.departamento,
+                provincia=p.provincia,
+                distrito=p.distrito,
+                hora_inicio=p.hora_inicio or now_peru(),
+                ultima_actualizacion=now_peru(),
+                bosf=p.bosf,
+                pext=p.pext,
+                servicios=tuple(p.servicios),
+                observaciones=p.observaciones
+            )
+            incidencias_repo.guardar(nueva)
+            creadas += 1
+            detalles.append({
+                "id": nueva.id,
+                "inc": nueva.inc,
+                "tipo": nueva.tipo.value,
+                "accion": "creada",
+                "plano": p.plano
+            })
+
+    if request.is_json or request.path.startswith("/api/"):
+        return {
+            "ok": True,
+            "total_bloques": len(bloques),
+            "creadas": creadas,
+            "actualizadas": actualizadas,
+            "detalles": detalles
+        }
+
+    flash(f"Carga anterior completada: {creadas} incidencias creadas, {actualizadas} actualizadas.", "success")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/api/resumen-turno", methods=["GET"])
+def api_resumen_turno():
+    """Genera el consolidado de WhatsApp de todas las averías pendientes para el relevo de turno."""
+    activas = incidencias_repo.listar_activas()
+    if not activas:
+        return {
+            "ok": True,
+            "total": 0,
+            "resumen": "=================\n=====AVERÍAS=====\n=================\n\n*No hay averías activas pendientes en el turno.*"
+        }
+
+    # Ordenar cronológicamente (más recientes primero)
+    activas_ordenadas = sorted(activas, key=lambda x: x.hora_inicio, reverse=True)
+    personal_list = personal_repo.listar_activos()
+
+    mensajes = []
+    for inc in activas_ordenadas:
+        plano_name, _ = _obtener_plano_y_clientes(inc)
+        plano_obj = planos_repo.obtener_por_id(plano_name) if plano_name else None
+        pers_obj = next((p for p in personal_list if p.nombre == inc.bosf), None)
+        tel = pers_obj.telefono if pers_obj else None
+        
+        msg_ind = generate_whatsapp_message(inc, plano_obj, tel)
+        mensajes.append(msg_ind.strip())
+
+    separador = "\n\n***********************************************************\n\n"
+    cuerpo = separador.join(mensajes)
+    resumen_final = f"=================\n=====AVERÍAS=====\n=================\n\n{cuerpo}"
+
+    return {
+        "ok": True,
+        "total": len(activas_ordenadas),
+        "resumen": resumen_final
+    }
 
 
 @app.route("/actualizar/<id_>", methods=["GET", "POST"])

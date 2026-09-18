@@ -13,24 +13,42 @@
             </h2>
             <p class="text-xs text-slate-400">Seleccione la tecnología de ingreso para las incidencias de red</p>
         </div>
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Botón: Carga Anterior -->
+            <button onclick="abrirModal('modal-carga-anterior')"
+                class="bg-amber-600/90 hover:bg-amber-500 active:scale-95 text-white text-xs font-semibold px-3.5 py-2.5 rounded-lg shadow transition flex items-center space-x-2 border border-amber-500/50 cursor-pointer"
+                title="Subir averías del turno anterior en lote">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Carga Anterior</span>
+            </button>
+
+            <!-- Botón: Resumen de Turno -->
+            <button onclick="abrirModalResumenTurno()"
+                class="bg-emerald-600/90 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold px-3.5 py-2.5 rounded-lg shadow transition flex items-center space-x-2 border border-emerald-500/50 cursor-pointer"
+                title="Generar resumen de averías pendientes para entrega de turno">
+                <i class="fa-solid fa-clipboard-list"></i>
+                <span>Resumen</span>
+            </button>
+
+            <div class="h-6 w-px bg-slate-800 mx-1 hidden sm:block"></div>
+
             <!-- Botón 1: Carga HFC -->
             <button onclick="abrirModal('modal-hfc')"
-                class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow transition flex items-center space-x-2">
+                class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow transition flex items-center space-x-2 cursor-pointer">
                 <i class="fa-solid fa-chart-line"></i>
                 <span>HFC</span>
             </button>
 
             <!-- Botón 2: Carga FTTH -->
             <button onclick="abrirModal('modal-ftth')"
-                class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow transition flex items-center space-x-2">
+                class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow transition flex items-center space-x-2 cursor-pointer">
                 <i class="fa-solid fa-network-wired"></i>
                 <span>FTTH</span>
             </button>
 
             <!-- Botón 3: Carga Manual -->
             <button onclick="abrirModal('modal-manual')"
-                class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-lg border border-slate-700 shadow transition flex items-center space-x-2">
+                class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-4 py-2.5 rounded-lg border border-slate-700 shadow transition flex items-center space-x-2 cursor-pointer">
                 <i class="fa-solid fa-pen-to-square"></i>
                 <span>Carga Manual</span>
             </button>
@@ -276,11 +294,11 @@
 
                     <!-- Acciones Rápidas -->
                     <div class="flex justify-end space-x-2 text-xs pt-1">
-                        <a href="/detalle/{{ inc.obj.id }}"
-                            class="bg-slate-900 hover:bg-slate-800 text-slate-300 px-3.5 py-1.5 rounded-lg font-semibold transition border border-slate-800 flex items-center space-x-1.5">
+                        <button type="button" onclick="abrirModalDetalle('{{ inc.obj.id }}')"
+                            class="bg-slate-900 hover:bg-slate-800 text-slate-300 px-3.5 py-1.5 rounded-lg font-semibold transition border border-slate-800 flex items-center space-x-1.5 cursor-pointer">
                             <i class="fa-solid fa-file-lines text-indigo-400"></i>
                             <span>Detalles</span>
-                        </a>
+                        </button>
                         {% if inc.obj.estado.value != 'CERRADA' %}
                         <a href="/actualizar/{{ inc.obj.id }}"
                             class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-lg font-semibold transition shadow flex items-center space-x-1.5">
@@ -717,6 +735,128 @@
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Modal 4: Carga del Turno Anterior -->
+<div id="modal-carga-anterior"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"
+    onclick="if(event.target === this) cerrarModal('modal-carga-anterior')">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
+        onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-clock-rotate-left text-base"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-100">Carga de Averías del Turno Anterior</h3>
+                    <p class="text-xs text-slate-400">Pegue el mensaje consolidado de WhatsApp del turno previo para registrar las averías activas.</p>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarModal('modal-carga-anterior')" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto space-y-4 flex-1">
+            <div class="bg-amber-950/20 border border-amber-800/40 rounded-xl p-3.5 text-xs text-amber-300 space-y-1">
+                <p class="font-semibold flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info text-amber-400"></i>
+                    <span>Formato compatible:</span>
+                </p>
+                <p class="text-amber-200/80 leading-relaxed">
+                    Acepta mensajes con encabezado <code class="bg-amber-900/40 px-1 py-0.5 rounded text-amber-100">=====AVERÍAS=====</code> y bloques individuales (FTTH o HFC) separados por asteriscos <code class="bg-amber-900/40 px-1 py-0.5 rounded text-amber-100">***...***</code>.
+                </p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>Mensaje Consolidado de WhatsApp</span>
+                    <button type="button" onclick="document.getElementById('carga_anterior_text').value=''" class="text-[11px] text-slate-400 hover:text-slate-200 font-normal cursor-pointer">
+                        <i class="fa-solid fa-trash-can mr-1"></i>Limpiar
+                    </button>
+                </label>
+                <textarea id="carga_anterior_text" rows="12"
+                    placeholder="=================&#10;=====AVERÍAS=====&#10;=================&#10;&#10;*NOC SERVICIOS FIJOS*&#10;TIPO DE MENSAJE: *ACTUALIZACION*&#10;TICKET ASIGNADO: INC000001142440...&#10;&#10;***********************************************************&#10;&#10;*NOC - SERVICIOS FIJOS*&#10;*FALLA:* Caída de nodo HFC CHI059..."
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-amber-500 shadow-inner resize-y leading-relaxed placeholder:text-slate-600"></textarea>
+            </div>
+
+            <!-- Feedback / Estado del procesamiento -->
+            <div id="carga-anterior-feedback" class="hidden"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between">
+            <button type="button" onclick="cerrarModal('modal-carga-anterior')"
+                class="bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-semibold px-4 py-2 rounded-lg transition border border-slate-800 cursor-pointer">
+                Cancelar
+            </button>
+            <button id="btn-procesar-carga-anterior" type="button" onclick="procesarCargaAnterior()"
+                class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-semibold px-5 py-2 rounded-lg shadow transition flex items-center space-x-2 cursor-pointer">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Procesar y Cargar Averías</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 5: Resumen de Turno (Exportación de Averías Activas) -->
+<div id="modal-resumen-turno"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"
+    onclick="if(event.target === this) cerrarModal('modal-resumen-turno')">
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
+        onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <i class="fa-solid fa-clipboard-list text-base"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-base font-bold text-slate-100">Resumen de Averías Pendientes</h3>
+                        <span id="resumen-total-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">0 activas</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Texto consolidado listo para copiar y enviar al siguiente turno en WhatsApp.</p>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarModal('modal-resumen-turno')" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto space-y-4 flex-1">
+            <div id="resumen-loading" class="py-16 text-center space-y-3">
+                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-emerald-500"></i>
+                <p class="text-xs text-slate-400 font-medium">Generando texto consolidado de averías activas...</p>
+            </div>
+
+            <div id="resumen-content" class="hidden space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-300">Mensaje Consolidado:</span>
+                    <button id="btn-copiar-resumen" type="button" onclick="copiarResumenTurno()"
+                        class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition shadow flex items-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-clipboard text-xs"></i>
+                        <span>Copiar Resumen de Averías</span>
+                    </button>
+                </div>
+                <textarea id="resumen_turno_text" readonly rows="15"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 select-all shadow-inner leading-relaxed resize-y"></textarea>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between text-xs">
+            <span class="text-slate-400 text-xs">Separador oficial de 59 asteriscos entre cada avería.</span>
+            <button type="button" onclick="cerrarModal('modal-resumen-turno')"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg font-semibold transition border border-slate-700 cursor-pointer">
+                Cerrar
+            </button>
+        </div>
     </div>
 </div>
 
@@ -1238,10 +1378,134 @@
         });
     }
 
+    // Manejador de Carga Anterior del Turno Previo
+    async function procesarCargaAnterior() {
+        const text = document.getElementById('carga_anterior_text')?.value || '';
+        const feedback = document.getElementById('carga-anterior-feedback');
+        const btn = document.getElementById('btn-procesar-carga-anterior');
+
+        if (!text.trim()) {
+            if (feedback) {
+                feedback.innerHTML = `
+                    <div class="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl text-amber-300 text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                        <span>Por favor ingrese el texto de las averías del turno anterior.</span>
+                    </div>`;
+                feedback.classList.remove('hidden');
+            }
+            return;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1.5"></i> Procesando averías...';
+        }
+        if (feedback) feedback.classList.add('hidden');
+
+        try {
+            const resp = await fetch('/api/carga-anterior', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ raw_text: text })
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || !data.ok) {
+                throw new Error(data.error || 'Error al procesar el texto');
+            }
+
+            if (feedback) {
+                feedback.innerHTML = `
+                    <div class="p-3.5 bg-emerald-950/50 border border-emerald-700/80 rounded-xl text-emerald-200 text-xs space-y-1.5 shadow-lg">
+                        <div class="font-bold flex items-center gap-2 text-emerald-300">
+                            <i class="fa-solid fa-circle-check text-base"></i>
+                            <span>¡Carga anterior procesada exitosamente!</span>
+                        </div>
+                        <p class="text-emerald-300/90">
+                            Se detectaron <strong>${data.total_bloques} averías</strong>:
+                            <strong>${data.creadas} creadas</strong> y <strong>${data.actualizadas} actualizadas</strong> en la base de datos.
+                        </p>
+                        <p class="text-[11px] text-emerald-400/80 italic">Actualizando el panel...</p>
+                    </div>`;
+                feedback.classList.remove('hidden');
+            }
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 1200);
+
+        } catch (err) {
+            console.error("Error en carga anterior:", err);
+            if (feedback) {
+                feedback.innerHTML = `
+                    <div class="p-3 bg-rose-950/40 border border-rose-800/60 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                        <span>${err.message || 'Ocurrió un error al procesar la carga anterior.'}</span>
+                    </div>`;
+                feedback.classList.remove('hidden');
+            }
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> Procesar y Cargar Averías';
+            }
+        }
+    }
+
+    // Manejador de Resumen de Turno (Exportación de Averías Activas)
+    async function abrirModalResumenTurno() {
+        abrirModal('modal-resumen-turno');
+        const loading = document.getElementById('resumen-loading');
+        const content = document.getElementById('resumen-content');
+        const ta = document.getElementById('resumen_turno_text');
+        const badge = document.getElementById('resumen-total-badge');
+
+        if (loading) loading.classList.remove('hidden');
+        if (content) content.classList.add('hidden');
+
+        try {
+            const resp = await fetch('/api/resumen-turno');
+            const data = await resp.json();
+
+            if (ta) ta.value = data.resumen || '';
+            if (badge) badge.innerText = `${data.total || 0} activas`;
+
+            if (loading) loading.classList.add('hidden');
+            if (content) content.classList.remove('hidden');
+        } catch (err) {
+            console.error("Error obteniendo resumen de turno:", err);
+            if (loading) loading.classList.add('hidden');
+            if (ta) ta.value = "Error al generar el resumen de turno: " + err.message;
+            if (content) content.classList.remove('hidden');
+        }
+    }
+
+    function copiarResumenTurno() {
+        const ta = document.getElementById('resumen_turno_text');
+        if (!ta) return;
+        ta.select();
+        ta.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(ta.value).then(() => {
+            const btn = document.getElementById('btn-copiar-resumen');
+            if (btn) {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check text-xs"></i> <span>¡Copiado!</span>';
+                btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+                btn.classList.add('bg-emerald-500');
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('bg-emerald-500');
+                    btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+                }, 2000);
+            }
+        }).catch(e => {
+            alert("Error al copiar texto: " + e);
+        });
+    }
+
     // Cerrar modales con la tecla ESC
     window.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
-            ['modal-hfc', 'modal-ftth', 'modal-manual'].forEach(id => {
+            ['modal-hfc', 'modal-ftth', 'modal-manual', 'modal-detalle', 'modal-carga-anterior', 'modal-resumen-turno'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');
             });

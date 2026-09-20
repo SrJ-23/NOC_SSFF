@@ -954,70 +954,15 @@ def carga_ftth():
         flash("No se detectaron planos con ONTs afectadas.", "warning")
         return redirect(url_for("dashboard"))
 
-    # ─── Construir mapa {plano_upper → onts_nuevos} ─────────────────────────
-    nuevo_mapa = {p["plano"].upper(): p["onts"] for p in reporte.planos}
-
-    # ─── Analizar incidencias FTTH activas ───────────────────────────────────
-    ftth_activas = [i for i in incidencias_repo.listar_activas() if i.tipo == TipoIncidencia.FTTH]
-
-    # Construir mapa inverso: plano_upper → incidencia
-    plano_a_inc: dict[str, object] = {}
-    for a in ftth_activas:
-        for p in _extraer_planos_de_incidencia(a):
-            plano_a_inc[p.upper()] = a
-
-    planos_ya_activos_set = set(plano_a_inc.keys())
-
-    # ─── Separar en categorías ───────────────────────────────────────────────
-    planos_nuevos_raw = [p for p in reporte.planos if p["plano"].upper() not in planos_ya_activos_set]
-
-    # Para los planos ya activos: detectar recuperaciones y cambios de ONTs
-    actualizaciones_por_inc: dict[str, dict] = {}  # inc_id → datos de actualización
-    for p in reporte.planos:
-        clave = p["plano"].upper()
-        if clave in plano_a_inc:
-            inc_obj = plano_a_inc[clave]
-            # Extraer ONTs registradas para este plano
-            onts_registradas = _extraer_onts_registradas_ftth(inc_obj, clave)
-            onts_nuevas = p["onts"]
-            recuperados = max(0, onts_registradas - onts_nuevas)
-
-            if inc_obj.id not in actualizaciones_por_inc:
-                actualizaciones_por_inc[inc_obj.id] = {
-                    "inc": inc_obj,
-                    "planos_nuevos_data": [],
-                    "total_recuperados": 0,
-                }
-            actualizaciones_por_inc[inc_obj.id]["planos_nuevos_data"].append({
-                "plano": p["plano"],
-                "onts_antes": onts_registradas,
-                "onts_ahora": onts_nuevas,
-                "recuperados": recuperados,
-            })
-            actualizaciones_por_inc[inc_obj.id]["total_recuperados"] += recuperados
-
-    # Planos que YA NO están en el nuevo reporte pero sí en incidencias activas
-    planos_recuperados_completos = []
-    for inc_obj in ftth_activas:
-        planos_inc = _extraer_planos_de_incidencia(inc_obj)
-        for p_str in planos_inc:
-            if p_str.upper() not in nuevo_mapa:
-                planos_recuperados_completos.append({
-                    "plano": p_str,
-                    "inc_id": inc_obj.id,
-                    "inc_code": inc_obj.inc,
-                })
-
-    # ─── Agrupar planos NUEVOS por OLT (troncal) ────────────────────────────
-    # Cada grupo OLT → se sugiere como masiva FTTH de esa troncal
+    # ─── Agrupar planos por OLT (troncal) de la avería confirmada ────────────
+    # En FTTH el analista sube exclusivamente los datos de la avería confirmada.
+    # Se agrupan los planos del reporte sin interferir con otras averías activas.
     olt_grupos: dict[str, list] = {}
-    for p in planos_nuevos_raw:
-        # La OLT se puede extraer del reporte si solo hay una, o heurístico del nombre
+    for p in reporte.planos:
         olt_key = reporte.olts[0] if len(reporte.olts) == 1 else _inferir_olt_de_plano(p["plano"], reporte.olts)
         olt_key = olt_key or "OLT_DESCONOCIDA"
         olt_grupos.setdefault(olt_key, []).append(p)
 
-    # Convertir a lista de grupos para el template
     grupos_nuevos = [
         {
             "olt": olt,
@@ -1030,21 +975,12 @@ def carga_ftth():
 
     personal_activos = personal_repo.listar_activos()
     hora_actual = now_peru().strftime("%H:%M")
-
-    # Pre-computar planos_nuevos_str para cada actualización (usado en template hidden fields)
-    for upd_data in actualizaciones_por_inc.values():
-        parts = [f"{p['plano']} ({p['onts_ahora']})" for p in upd_data["planos_nuevos_data"]]
-        upd_data["planos_nuevos_str"] = ", ".join(parts)
-        upd_data["total_nuevo"] = sum(p["onts_ahora"] for p in upd_data["planos_nuevos_data"])
-
     fecha_actual = now_peru().strftime("%Y-%m-%d")
 
     return render_template(
         "ftth_preview.html",
         reporte=reporte,
         grupos_nuevos=grupos_nuevos,
-        actualizaciones=list(actualizaciones_por_inc.values()),
-        planos_recuperados_completos=planos_recuperados_completos,
         personal_activos=personal_activos,
         hora_actual=reporte.hora_deteccion or hora_actual,
         fecha_averia=reporte.fecha_deteccion_str or fecha_actual,
@@ -1515,6 +1451,88 @@ def api_resumen_turno():
     }
 
 
+@app.route("/api/evaluar-recuperacion-ftth/<id_>", methods=["POST"])
+def api_evaluar_recuperacion_ftth(id_):
+    """Evalúa la recuperación de ONTs para una incidencia FTTH específica comparando
+    el reporte actual de alarmas (NCE) contra los planos de dicha incidencia."""
+    inc = incidencias_repo.obtener_por_id(id_)
+    if not inc:
+        return {"ok": False, "error": "Incidencia no encontrada."}, 404
+
+    data = request.get_json(silent=True) or {}
+    raw_text = data.get("raw_text", "").strip()
+    if not raw_text:
+        return {"ok": False, "error": "Por favor ingrese el texto de alarmas de Huawei NCE."}, 400
+
+    reporte = parse_ftth_text(raw_text)
+    if not reporte.ok:
+        return {"ok": False, "error": f"Error al procesar el texto: {reporte.error}"}, 400
+
+    # Mapa de {PLANO_UPPER -> ONTs actuales}
+    nuevas_alarmas_map = {p["plano"].upper(): p["onts"] for p in reporte.planos}
+
+    # Planos registrados en ESTA incidencia
+    planos_inc = _extraer_planos_de_incidencia(inc)
+    if not planos_inc:
+        p_name, _ = _obtener_plano_y_clientes(inc)
+        if p_name:
+            planos_inc = [p_name]
+
+    if not planos_inc:
+        return {"ok": False, "error": "La incidencia no tiene planos registrados para comparar."}, 400
+
+    planos_comparativa = []
+    total_antes = 0
+    total_ahora = 0
+
+    for pid in planos_inc:
+        pid_upper = pid.upper()
+        onts_antes = _extraer_onts_registradas_ftth(inc, pid_upper)
+        onts_ahora = nuevas_alarmas_map.get(pid_upper, 0)
+        recuperados = max(0, onts_antes - onts_ahora)
+
+        total_antes += onts_antes
+        total_ahora += onts_ahora
+
+        planos_comparativa.append({
+            "plano": pid,
+            "onts_antes": onts_antes,
+            "onts_ahora": onts_ahora,
+            "recuperados": recuperados
+        })
+
+    total_recuperados = max(0, total_antes - total_ahora)
+    es_recuperacion_total = (total_ahora == 0)
+
+    if es_recuperacion_total:
+        sugerencia_nota = f"Se valida restablecimiento total de servicios FTTH ({total_antes} clientes recuperados). Se procede con el cierre."
+        accion_sugerida = "CIERRE"
+    elif total_recuperados > 0:
+        sugerencia_nota = f"Se observa restablecimiento {total_recuperados} clientes FTTH. Quedan {total_ahora} clientes afectados. Se mantendrá en monitoreo."
+        accion_sugerida = "ACTUALIZACION"
+    else:
+        sugerencia_nota = f"Se verifica monitoreo de alarmas FTTH. Se mantienen {total_ahora} clientes afectados."
+        accion_sugerida = "ACTUALIZACION"
+
+    # Preparar string para actualizar observaciones de la incidencia
+    planos_nuevos_str = ", ".join(f"{p['plano']} ({p['onts_ahora']})" for p in planos_comparativa if p['onts_ahora'] > 0)
+    if not planos_nuevos_str:
+        planos_nuevos_str = ", ".join(f"{p['plano']} (0)" for p in planos_comparativa)
+
+    return {
+        "ok": True,
+        "inc": inc.inc,
+        "total_antes": total_antes,
+        "total_ahora": total_ahora,
+        "total_recuperados": total_recuperados,
+        "es_recuperacion_total": es_recuperacion_total,
+        "accion_sugerida": accion_sugerida,
+        "sugerencia_nota": sugerencia_nota,
+        "planos_comparativa": planos_comparativa,
+        "planos_nuevos_str": planos_nuevos_str
+    }
+
+
 @app.route("/actualizar/<id_>", methods=["GET", "POST"])
 def actualizar(id_):
     """Panel individual de actualización y cierres de incidencias"""
@@ -1600,6 +1618,28 @@ def actualizar(id_):
                     obs_actualizada = re.sub(r"ETIQUETA_FALLA:[^\n]*", f"ETIQUETA_FALLA: {etiqueta_falla}", obs_actualizada)
                 else:
                     obs_actualizada += f"\nETIQUETA_FALLA: {etiqueta_falla}"
+
+            # Si se envió actualización de planos/onts desde la herramienta de recuperación:
+            planos_nuevos_str = request.form.get("planos_nuevos_str", "").strip()
+            nuevo_total_onts = request.form.get("nuevo_total_onts", "").strip()
+            if planos_nuevos_str:
+                if re.search(r"Planos:\s*[^\n]+", obs_actualizada):
+                    obs_actualizada = re.sub(r"Planos:\s*[^\n]+", f"Planos: {planos_nuevos_str}", obs_actualizada)
+                else:
+                    obs_actualizada = f"Planos: {planos_nuevos_str}\n" + obs_actualizada
+
+            if nuevo_total_onts.isdigit():
+                tot_int = int(nuevo_total_onts)
+                if re.search(r"Clientes:\s*\d+", obs_actualizada):
+                    obs_actualizada = re.sub(r"Clientes:\s*\d+", f"Clientes: {tot_int}", obs_actualizada)
+                m_dist_det = re.search(r"Detalle_Distritos:\s*([^:]+):\s*(\d+)\s*nodos?,\s*(\d+)\s*de\s*(\d+)\s*\(([\d\.]+%?)\)", obs_actualizada)
+                if m_dist_det:
+                    d_nom = m_dist_det.group(1)
+                    d_nod = m_dist_det.group(2)
+                    d_tot = int(m_dist_det.group(4))
+                    d_pct = round(tot_int / d_tot * 100, 3) if d_tot > 0 else 0
+                    nuevo_det = f"Detalle_Distritos: {d_nom}: {d_nod} nodos, {tot_int} de {d_tot} ({d_pct}%)"
+                    obs_actualizada = re.sub(r"Detalle_Distritos:[^\n]+", nuevo_det, obs_actualizada)
 
         
         inc_actualizada = replace(

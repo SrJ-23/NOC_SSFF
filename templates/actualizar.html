@@ -50,6 +50,8 @@
     <!-- Formulario de Envío -->
     <form action="/actualizar/{{ inc.id }}" method="POST"
         class="bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
+        <input type="hidden" name="planos_nuevos_str" id="planos_nuevos_str" value="">
+        <input type="hidden" name="nuevo_total_onts" id="nuevo_total_onts" value="">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -71,6 +73,85 @@
 
         <!-- Campos exclusivos FTTH: Causa Raiz + Correctivo + Servicios Adicionales -->
         {% if es_ftth %}
+        <!-- Herramienta de Recuperación de Alarmas NCE (FTTH) -->
+        <div class="border border-emerald-800/50 bg-emerald-950/20 rounded-xl p-4 space-y-3 shadow-lg">
+            <div class="flex items-center justify-between">
+                <p class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-line text-emerald-400"></i>
+                    Verificar Recuperación de Clientes (Alarmas NCE)
+                </p>
+                <span class="text-[10px] text-slate-400 font-mono">Compara alarmas del momento vs avería actual</span>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Pegar alarmas actuales de Huawei NCE (Solo de esta avería o zona)
+                </label>
+                <textarea id="nce_alarmas_text" rows="3"
+                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-emerald-500 placeholder-slate-600"
+                    placeholder="Pega aquí el texto exportado o copiado de Huawei NCE con las alarmas del momento..."></textarea>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="analizarRecuperacionFtth('{{ inc.id }}')" id="btn-analizar-ftth"
+                    class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 shadow">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i> Analizar Recuperación
+                </button>
+                <div id="ftth-analisis-loading" class="hidden text-xs text-emerald-400 font-mono flex items-center gap-2">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Analizando contra planos de esta incidencia...
+                </div>
+            </div>
+
+            <div id="ftth-analisis-error" class="hidden text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 p-2.5 rounded-lg"></div>
+
+            <!-- Contenedor de Resultados del Análisis -->
+            <div id="ftth-analisis-resultados" class="hidden space-y-3 bg-slate-900/80 border border-emerald-800/40 p-3.5 rounded-lg">
+                <!-- Resumen numérico -->
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="text-slate-400">Antes: <strong id="ftth-badge-antes" class="text-slate-200 font-mono">0</strong> ONTs</span>
+                        <span class="text-slate-500">→</span>
+                        <span class="text-slate-400">Ahora: <strong id="ftth-badge-ahora" class="text-amber-400 font-mono">0</strong> ONTs</span>
+                        <span class="text-slate-500">|</span>
+                        <span class="text-emerald-400 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-arrow-trend-down"></i>
+                            Recuperados: <strong id="ftth-badge-recuperados" class="font-mono">+0</strong>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Tabla de planos de la avería -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="text-[10px] font-bold text-slate-500 uppercase border-b border-slate-800">
+                                <th class="text-left py-1.5 pr-3">Plano</th>
+                                <th class="text-right py-1.5 pr-3">ONTs Antes</th>
+                                <th class="text-right py-1.5 pr-3">ONTs Ahora</th>
+                                <th class="text-right py-1.5">Recuperados</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ftth-tabla-comparativa-body" class="divide-y divide-slate-800/50">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Sugerencia y botón aplicar -->
+                <div class="pt-2 border-t border-slate-800 space-y-2">
+                    <div class="text-xs text-slate-300">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">Nota Sugerida para el Historial / WhatsApp:</span>
+                        <p id="ftth-sugerencia-nota" class="font-mono text-emerald-300 bg-slate-950 p-2 rounded border border-slate-800"></p>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" id="btn-aplicar-ftth" onclick="aplicarRecuperacionFtth()"
+                            class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-check-double"></i> Aplicar Novedad y Actualizar Impacto
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="border border-teal-800/40 bg-teal-950/20 rounded-xl p-4 space-y-4">
             <p class="text-[11px] font-bold text-teal-400 uppercase tracking-wider">
                 <i class="fa-solid fa-microscope mr-1.5"></i>Diagnóstico FTTH (opcional — solo modifica si aplica)
@@ -230,6 +311,113 @@
             icon.classList.remove("rotate-180");
         } else {
             icon.classList.add("rotate-180");
+        }
+    }
+
+    let ultimaEvaluacionFtth = null;
+
+    async function analizarRecuperacionFtth(incId) {
+        const rawText = document.getElementById("nce_alarmas_text").value.trim();
+        const errorDiv = document.getElementById("ftth-analisis-error");
+        const loadingDiv = document.getElementById("ftth-analisis-loading");
+        const resultsDiv = document.getElementById("ftth-analisis-resultados");
+        const btn = document.getElementById("btn-analizar-ftth");
+
+        errorDiv.classList.add("hidden");
+        resultsDiv.classList.add("hidden");
+
+        if (!rawText) {
+            errorDiv.textContent = "Por favor pegue el texto de alarmas de Huawei NCE.";
+            errorDiv.classList.remove("hidden");
+            return;
+        }
+
+        loadingDiv.classList.remove("hidden");
+        btn.disabled = true;
+
+        try {
+            const response = await fetch(`/api/evaluar-recuperacion-ftth/${incId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ raw_text: rawText })
+            });
+
+            const data = await response.json();
+            loadingDiv.classList.add("hidden");
+            btn.disabled = false;
+
+            if (!data.ok) {
+                errorDiv.textContent = data.error || "Error al analizar las alarmas.";
+                errorDiv.classList.remove("hidden");
+                return;
+            }
+
+            ultimaEvaluacionFtth = data;
+
+            // Renderizar tabla comparativa
+            const tbody = document.getElementById("ftth-tabla-comparativa-body");
+            tbody.innerHTML = "";
+
+            data.planos_comparativa.forEach(p => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-900/50 border-b border-slate-800/40";
+
+                const colorAhora = p.onts_ahora < p.onts_antes ? "text-emerald-400 font-semibold" : (p.onts_ahora > p.onts_antes ? "text-amber-400" : "text-slate-300");
+                const colorRecup = p.recuperados > 0 ? "text-emerald-400 font-bold" : "text-slate-600";
+                const textRecup = p.recuperados > 0 ? `+${p.recuperados}` : "0";
+
+                tr.innerHTML = `
+                    <td class="py-1.5 font-mono text-slate-200 font-semibold">${p.plano}</td>
+                    <td class="py-1.5 text-right text-slate-400">${p.onts_antes}</td>
+                    <td class="py-1.5 text-right ${colorAhora}">${p.onts_ahora}</td>
+                    <td class="py-1.5 text-right ${colorRecup}">${textRecup}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById("ftth-badge-antes").textContent = data.total_antes;
+            document.getElementById("ftth-badge-ahora").textContent = data.total_ahora;
+            document.getElementById("ftth-badge-recuperados").textContent = `+${data.total_recuperados}`;
+
+            document.getElementById("ftth-sugerencia-nota").textContent = data.sugerencia_nota;
+            resultsDiv.classList.remove("hidden");
+
+        } catch (err) {
+            loadingDiv.classList.add("hidden");
+            btn.disabled = false;
+            errorDiv.textContent = "Error de conexión al procesar las alarmas: " + err.message;
+            errorDiv.classList.remove("hidden");
+        }
+    }
+
+    function aplicarRecuperacionFtth() {
+        if (!ultimaEvaluacionFtth) return;
+
+        // 1. Asignar sugerencia de nota al campo de novedad
+        const novedadField = document.getElementById("novedad_field");
+        if (novedadField) {
+            novedadField.value = ultimaEvaluacionFtth.sugerencia_nota;
+            novedadField.focus();
+        }
+
+        // 2. Asignar tipo de actualizacion (CIERRE si es total, ACTUALIZACION si no)
+        const selectTipo = document.getElementById("tipo_actualizacion_select");
+        if (selectTipo) {
+            selectTipo.value = ultimaEvaluacionFtth.accion_sugerida;
+        }
+
+        // 3. Pasar datos para actualizar observaciones de la incidencia
+        const hiddenPlanos = document.getElementById("planos_nuevos_str");
+        const hiddenOnts = document.getElementById("nuevo_total_onts");
+        if (hiddenPlanos) hiddenPlanos.value = ultimaEvaluacionFtth.planos_nuevos_str;
+        if (hiddenOnts) hiddenOnts.value = ultimaEvaluacionFtth.total_ahora;
+
+        // Feedback visual en el botón
+        const btnAplicar = document.getElementById("btn-aplicar-ftth");
+        if (btnAplicar) {
+            btnAplicar.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>¡Aplicado a la Novedad!';
+            btnAplicar.classList.remove("bg-teal-600", "hover:bg-teal-500");
+            btnAplicar.classList.add("bg-emerald-700");
         }
     }
 </script>

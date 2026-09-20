@@ -127,6 +127,10 @@ def generate_whatsapp_message(
         else:
             tipo_msg = "*INICIAL*"
 
+        planos_hfc_str = ""
+        if planos_match and planos_match.group(1).strip():
+            planos_hfc_str = f"\n\n*PLANOS AFECTADOS:*\n{planos_match.group(1).strip()}"
+
         if is_closed:
             msg = (
                 f"*NOC SERVICIOS FIJOS*\n"
@@ -142,6 +146,7 @@ def generate_whatsapp_message(
                 f"{fecha_impacto_str}\n"
                 f"{history_block}\n\n"
                 f"*HORA DE SOLUCIÓN :* {fecha_solucion_str} {hora_solucion_str}h"
+                f"{planos_hfc_str}"
             )
         else:
             msg = (
@@ -161,6 +166,7 @@ def generate_whatsapp_message(
                 f"{fecha_impacto_str}\n"
                 f"{history_block}\n\n"
                 f"*HORA DE SOLUCIÓN :* {fecha_solucion_str} {hora_solucion_str}h"
+                f"{planos_hfc_str}"
             )
         return msg
 

@@ -1050,6 +1050,7 @@
         card.dataset.detalleDistritos = grupo.detalle_distritos || "";
         card.dataset.planosStr = planosStr;
         card.dataset.totalAfectados = grupo.total_afectados || 0;
+        card.dataset.nodosJson = JSON.stringify(grupo.nodos || []);
 
         let bosfOptionsHtml = `<option value="">Seleccione BOSF...</option>`;
         BOSF_OPTIONS.forEach(b => { bosfOptionsHtml += `<option value="${b}">${b}</option>`; });
@@ -1201,6 +1202,7 @@
                     detalle_distritos: card.dataset.detalleDistritos,
                     planos_str: card.dataset.planosStr,
                     total_afectados: card.dataset.totalAfectados,
+                    nodos: JSON.parse(card.dataset.nodosJson || '[]'),
                 });
             });
             if (grupos.length === 0 && excluidosSet.size === 0) {
@@ -1281,8 +1283,11 @@
             if (!r.inc || !r.inc.toUpperCase().startsWith("INC")) return;
 
             const esActiva = ACTIVAS_HFC.some(a => {
-                if (r.inc && a.inc && a.inc === r.inc) return true;
-                if (a.plano && a.plano.toUpperCase() === r.plano.toUpperCase()) return true;
+                const rInc = (r.inc || "").trim().toUpperCase();
+                const aInc = (a.inc || "").trim().toUpperCase();
+                const aIncNodo = (a.inc_nodo || "").trim().toUpperCase();
+                if (rInc && (rInc === aInc || rInc === aIncNodo)) return true;
+                if (a.plano && r.plano && a.plano.trim().toUpperCase() === r.plano.trim().toUpperCase()) return true;
                 return false;
             });
 

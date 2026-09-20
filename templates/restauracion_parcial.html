@@ -1,4 +1,4 @@
-﻿<!-- templates/restauracion_parcial.html -->
+<!-- templates/restauracion_parcial.html -->
 {% extends 'base.html' %}
 
 {% block content %}
@@ -130,8 +130,10 @@ DISTRITO(S):
             </div>
 
             <!-- Hiddens -->
-            <input type="hidden" name="planos_restantes_{{ inc.id }}" value="{{ rest.planos_restantes | join(', ') }}">
+            <input type="hidden" name="planos_restantes_{{ inc.id }}" value="{{ rest.planos_restantes_str or (rest.planos_restantes | join(', ')) }}">
             <input type="hidden" name="detalle_distritos_{{ inc.id }}" value="{{ rest.detalle_distritos_nuevo }}">
+            <input type="hidden" name="nodos_restantes_json_{{ inc.id }}" value="{{ rest.nodos_restantes_json | e }}">
+            <input type="hidden" name="nuevo_total_clientes_{{ inc.id }}" value="{{ rest.nuevo_total_clientes }}">
 
             <div class="flex justify-end">
                 <button type="button" onclick="copiarMensaje('{{ inc.id }}')"

@@ -340,7 +340,17 @@ def parsear_bloque_averia(bloque: str, planos_repo=None) -> ParsedIncidenciaAnte
 
     else:
         # HFC
-        if res.plano:
+        m_planos_hfc = re.search(r"\*PLANOS AFECTADOS:\*\s*([^\n\r]+)", bloque, re.IGNORECASE)
+        if m_planos_hfc:
+            raw_pl = m_planos_hfc.group(1).strip()
+            obs_lines.append(f"Planos: {raw_pl}")
+            for part in raw_pl.split(","):
+                m_code = re.search(r"^([A-Za-z0-9_-]+)", part.strip())
+                if m_code:
+                    res.planos_lista.append(m_code.group(1).upper())
+            if res.planos_lista and not res.plano:
+                res.plano = res.planos_lista[0]
+        elif res.plano:
             obs_lines.append(f"Plano: {res.plano}")
         if res.equipo:
             obs_lines.append(f"Equipo: {res.equipo}")

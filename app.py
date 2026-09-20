@@ -138,8 +138,43 @@ def _parse_hora_averia(hora_str: str, fecha_str: str = "", arrived_on_str: str =
     now = now_peru()
     return now.replace(hour=h, minute=m, second=0, microsecond=0)
 
+def _extraer_mapa_nodos_hfc(incidencia) -> list[dict]:
+    """Extrae la lista estructurada de nodos {plano, equipo, clientes, inc} de una masiva HFC."""
+    m_json = re.search(r"NODOS_MASIVA_JSON:\s*(\[[^\n]+\])", incidencia.observaciones)
+    if m_json:
+        try:
+            return json.loads(m_json.group(1))
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # Fallback para incidencias preexistentes o individuales
+    planos = _extraer_planos_de_incidencia(incidencia)
+    mapa = []
+    for p in planos:
+        m_cli = re.search(rf"\b{re.escape(p)}\s*\((\d+)\)", incidencia.observaciones, re.IGNORECASE)
+        cli = int(m_cli.group(1)) if m_cli else 0
+        mapa.append({
+            "plano": p,
+            "equipo": "",
+            "clientes": cli,
+            "inc": incidencia.inc or ""
+        })
+    return mapa
+
+
 def _extraer_planos_de_incidencia(incidencia) -> list[str]:
     """Extrae la lista de todos los códigos de planos contenidos en una incidencia (individual o masiva)."""
+    # 0. Si cuenta con mapa JSON estructurado
+    m_json = re.search(r"NODOS_MASIVA_JSON:\s*(\[[^\n]+\])", incidencia.observaciones)
+    if m_json:
+        try:
+            nodos = json.loads(m_json.group(1))
+            planos_from_json = [str(n.get("plano", "")).strip().upper() for n in nodos if n.get("plano")]
+            if planos_from_json:
+                return list(dict.fromkeys(planos_from_json))
+        except (json.JSONDecodeError, TypeError):
+            pass
+
     planos = []
     # 1. Caso masiva: Planos: AYCA001 (48), AYCA003 (55), ...
     planos_match = re.search(r"Planos:\s*([^\n]+)", incidencia.observaciones, re.IGNORECASE)
@@ -223,20 +258,23 @@ def dashboard():
         
         p_name, _ = _obtener_plano_y_clientes(inc)
         if not is_closed and inc.tipo == TipoIncidencia.HFC:
-            planos_inc = _extraer_planos_de_incidencia(inc)
-            for p in planos_inc:
+            nodos_map = _extraer_mapa_nodos_hfc(inc)
+            for nodo_item in nodos_map:
                 activas_hfc_list.append({
                     "id": inc.id,
                     "inc": inc.inc,
-                    "plano": p,
+                    "inc_nodo": nodo_item.get("inc") or inc.inc,
+                    "plano": nodo_item.get("plano", ""),
+                    "clientes": nodo_item.get("clientes", 0),
                     "distrito": inc.distrito,
                     "departamento": inc.departamento,
-                    "es_masiva": len(planos_inc) > 1
+                    "es_masiva": len(nodos_map) > 1
                 })
-            if not planos_inc:
+            if not nodos_map:
                 activas_hfc_list.append({
                     "id": inc.id,
                     "inc": inc.inc,
+                    "inc_nodo": inc.inc,
                     "plano": "",
                     "distrito": inc.distrito,
                     "departamento": inc.departamento,
@@ -603,11 +641,23 @@ def carga_hfc():
             dept = pl_obj.departamento if pl_obj else "LIMA"
             prov = pl_obj.provincia if pl_obj else "LIMA"
 
+            nodos_lista = grupo.get("nodos") or []
+            if not nodos_lista:
+                for p in planos_grupo:
+                    nodos_lista.append({
+                        "plano": p,
+                        "equipo": "",
+                        "clientes": 0,
+                        "inc": inc_principal
+                    })
+            nodos_json_str = json.dumps(nodos_lista)
+
             obs = (
                 f"Anillo: {anillo_str}\n"
                 f"Planos: {planos_str}\n"
                 f"Clientes: {total_afectados}\n"
                 f"Detalle_Distritos: {detalle_distritos}\n"
+                f"NODOS_MASIVA_JSON: {nodos_json_str}\n"
                 f"[{dt_inicio.strftime('%H:%M')}h] Se deriva a BOSF {bosf_val or 'Pendiente'} para su atención."
             )
 
@@ -809,60 +859,59 @@ def _separar_cierres_y_restauraciones(hfc_activas, planos_en_reporte_up: set, gr
     grafana_clientes = {r["plano"].upper(): int(r.get("clientes", 0) or 0) for r in grafana_rows}
 
     for inc_act in hfc_activas:
-        planos_inc = _extraer_planos_de_incidencia(inc_act)
-        if not planos_inc:
+        mapa_nodos = _extraer_mapa_nodos_hfc(inc_act)
+        if not mapa_nodos:
             continue
 
-        planos_en_grafana = [p for p in planos_inc if p.upper() in planos_en_reporte_up]
-        planos_fuera = [p for p in planos_inc if p.upper() not in planos_en_reporte_up]
+        nodos_en_grafana = [n for n in mapa_nodos if n.get("plano", "").upper() in planos_en_reporte_up]
+        nodos_fuera = [n for n in mapa_nodos if n.get("plano", "").upper() not in planos_en_reporte_up]
 
-        if not planos_fuera:
+        if not nodos_fuera:
             continue  # todos siguen activos, nada que hacer
 
-        if not planos_en_grafana:
+        if not nodos_en_grafana:
             # Todos los planos desaparecieron → cierre completo
             cierres_completos.append(inc_act)
         else:
             # Parcial: algunos planos se recuperaron dentro de una masiva
-            # Calcular nuevo impacto con los planos restantes en Grafana
+            for n in nodos_en_grafana:
+                p_up = n.get("plano", "").upper()
+                if p_up in grafana_clientes and grafana_clientes[p_up] > 0:
+                    n["clientes"] = grafana_clientes[p_up]
+
             nuevos_registros = [
-                {"plano": p, "clientes": grafana_clientes.get(p.upper(), 0)}
-                for p in planos_en_grafana
+                {"plano": n["plano"], "clientes": n.get("clientes", 0)}
+                for n in nodos_en_grafana
             ]
             meta_nueva = planos_repo.obtener_metadatos_anillos(nuevos_registros)
-            nuevo_total = sum(r["clientes"] for r in nuevos_registros)
+            nuevo_total = sum(n.get("clientes", 0) for n in nodos_en_grafana)
 
-            # Planos recuperados
-            planos_recuperados_info = []
-            for p in planos_fuera:
-                # Extraer clientes originales del campo Planos: AYCA001 (48), ...
-                import re as _re
-                m = _re.search(
-                    rf"\b{p}\s*\((\d+)\)",
-                    inc_act.observaciones, _re.IGNORECASE
-                )
-                cli_orig = int(m.group(1)) if m else 0
-                planos_recuperados_info.append({"plano": p, "clientes": cli_orig})
-
+            planos_recuperados_info = [
+                {"plano": n["plano"], "clientes": n.get("clientes", 0), "inc": n.get("inc", "")}
+                for n in nodos_fuera
+            ]
             clientes_recuperados = sum(x["clientes"] for x in planos_recuperados_info)
 
             detalle_dists_nueva = []
             for d_name, d_val in meta_nueva["distritos_stats"].items():
-                n = d_val["nodos"]
+                n_nod = d_val["nodos"]
                 af = d_val["afectados"]
                 tot = d_val["total_distrito"]
                 pct = d_val["porcentaje"]
-                detalle_dists_nueva.append(
-                    f"{d_name}: {n} nodos, {af} de {tot} ({pct}%)"
-                )
+                detalle_dists_nueva.append(f"{d_name}: {n_nod} nodos, {af} de {tot} ({pct}%)")
+
+            planos_restantes_nombres = [n["plano"] for n in nodos_en_grafana]
+            planos_restantes_str = ", ".join(f"{n['plano']} ({n['clientes']})" for n in nodos_en_grafana)
 
             restauraciones_parciales.append({
                 "inc": inc_act,
-                "planos_restantes": planos_en_grafana,
+                "planos_restantes": planos_restantes_nombres,
+                "planos_restantes_str": planos_restantes_str,
+                "nodos_restantes_json": json.dumps(nodos_en_grafana),
                 "planos_recuperados": planos_recuperados_info,
                 "clientes_recuperados": clientes_recuperados,
                 "nuevo_total_clientes": nuevo_total,
-                "nuevo_n_nodos": len(planos_en_grafana),
+                "nuevo_n_nodos": len(nodos_en_grafana),
                 "detalle_distritos_nuevo": " | ".join(detalle_dists_nueva),
                 "meta_nueva": meta_nueva,
             })
@@ -884,13 +933,22 @@ def restauracion_parcial():
             # Leer datos de planos restantes y detalle
             planos_restantes_str = request.form.get(f"planos_restantes_{inc_id}", "")
             detalle_nuevo = request.form.get(f"detalle_distritos_{inc_id}", "")
+            nodos_restantes_json = request.form.get(f"nodos_restantes_json_{inc_id}", "")
+            nuevo_total_cli = request.form.get(f"nuevo_total_clientes_{inc_id}", "")
 
             inc_match = incidencias_repo.obtener_por_id(inc_id)
             if inc_match:
-                # Actualizar observaciones: sustituir Planos: y Detalle_Distritos: con los nuevos valores
                 obs = inc_match.observaciones
+                if nodos_restantes_json:
+                    if re.search(r"NODOS_MASIVA_JSON:\s*\[[^\n]+\]", obs):
+                        obs = re.sub(r"NODOS_MASIVA_JSON:\s*\[[^\n]+\]", f"NODOS_MASIVA_JSON: {nodos_restantes_json}", obs)
+                    else:
+                        obs = f"NODOS_MASIVA_JSON: {nodos_restantes_json}\n" + obs
+
                 if planos_restantes_str:
                     obs = re.sub(r"Planos:\s*[^\n]+", f"Planos: {planos_restantes_str}", obs)
+                if nuevo_total_cli:
+                    obs = re.sub(r"Clientes:\s*\d+", f"Clientes: {nuevo_total_cli}", obs)
                 if detalle_nuevo:
                     obs = re.sub(r"Detalle_Distritos:\s*[^\n]+", f"Detalle_Distritos: {detalle_nuevo}", obs)
 

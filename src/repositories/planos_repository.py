@@ -158,3 +158,37 @@ class PlanosRepository(ReadOnlyRepository[Plano]):
                 ],
             })
         return grupos
+
+    def obtener_plano_gemelo(self, plano_nombre: str) -> Plano | None:
+        """
+        Busca si plano_nombre corresponde a un plano gemelo con sufijo -A o -B.
+        Si plano_nombre ya tiene -A o -B y existe de forma exacta en la base, lo retorna.
+        Si no tiene sufijo, prueba con -A y luego con -B.
+        Retorna None si no existe o no es un plano gemelo en el catálogo.
+        """
+        if not plano_nombre:
+            return None
+        p_up = plano_nombre.strip().upper()
+        if p_up.endswith(("-A", "-B")):
+            for k, p in self._data.planos.items():
+                if k.upper() == p_up:
+                    return p
+            return None
+
+        for cand in (f"{p_up}-A", f"{p_up}-B"):
+            for k, p in self._data.planos.items():
+                if k.upper() == cand:
+                    return p
+        return None
+
+    def listar_planos_gemelos_hfc(self) -> dict[str, str]:
+        """
+        Retorna un diccionario de mapeo { 'PLANO_UPPER': 'Plano_Original' }
+        de todos los planos HFC que terminan en -A o -B.
+        """
+        return {
+            p.plano.upper(): p.plano
+            for p in self.listar_todos()
+            if p.tecnologia == "HFC" and (p.plano.endswith("-A") or p.plano.endswith("-B"))
+        }
+

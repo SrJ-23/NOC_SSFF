@@ -4,6 +4,41 @@ from __future__ import annotations
 
 import re
 from src.core.models.hfc_ftth_registro import HFCRegistro
+from src.data.data_manager import get_data_manager
+
+
+def _resolver_plano_y_inc(plano_raw: str, inc_raw: str) -> tuple[str, str, bool] | None:
+    """
+    Valida y resuelve el plano y la incidencia:
+    - Si inc empieza con 'INC': es una fila válida normal.
+    - Si inc es 'EN PROCESO' (o no empieza con 'INC'):
+      se verifica si añadiendo '-A' o '-B' (o si ya los tiene) coincide con un plano gemelo en el catálogo maestro.
+      Si coincide, se normaliza el plano al nombre gemelo oficial, se fija inc='EN PROCESO' y se acepta.
+      Si no coincide, se descarta (retorna None).
+    """
+    p_clean = plano_raw.strip()
+    inc_clean = inc_raw.strip()
+    inc_upper = inc_clean.upper()
+
+    if inc_upper.startswith("INC"):
+        return p_clean, inc_clean, False
+
+    if "PROCESO" in inc_upper or not inc_upper:
+        try:
+            dm = get_data_manager()
+            p_up = p_clean.upper()
+            if p_up.endswith(("-A", "-B")):
+                for k, p in dm.planos.items():
+                    if k.upper() == p_up:
+                        return p.plano, "EN PROCESO", True
+            for cand in (f"{p_up}-A", f"{p_up}-B"):
+                for k, p in dm.planos.items():
+                    if k.upper() == cand:
+                        return p.plano, "EN PROCESO", True
+        except Exception:
+            pass
+
+    return None
 
 
 def parse_hfc_text(text: str) -> list[HFCRegistro]:
@@ -49,15 +84,17 @@ def parse_hfc_text(text: str) -> list[HFCRegistro]:
                     continue
 
                 inc = parts[3] if len(parts) > 3 else ""
-                if not inc.strip().upper().startswith("INC"):
+                res = _resolver_plano_y_inc(plano, inc)
+                if not res:
                     continue
+                final_plano, final_inc, en_proceso = res
 
                 rows.append(HFCRegistro(
-                    plano=plano,
+                    plano=final_plano,
                     equipo=equipo,
                     clientes=clientes,
-                    inc=inc,
-                    en_proceso=False
+                    inc=final_inc,
+                    en_proceso=en_proceso
                 ))
     else:
         # Columna única: filtrar líneas de títulos y encabezados conocidos
@@ -80,15 +117,17 @@ def parse_hfc_text(text: str) -> list[HFCRegistro]:
             except ValueError:
                 continue
             inc = chunk[3] if len(chunk) > 3 else ""
-            if not inc.strip().upper().startswith("INC"):
+            res = _resolver_plano_y_inc(plano, inc)
+            if not res:
                 continue
+            final_plano, final_inc, en_proceso = res
 
             rows.append(HFCRegistro(
-                plano=plano,
+                plano=final_plano,
                 equipo=equipo,
                 clientes=clientes,
-                inc=inc,
-                en_proceso=False
+                inc=final_inc,
+                en_proceso=en_proceso
             ))
 
     return rows

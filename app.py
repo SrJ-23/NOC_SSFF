@@ -334,6 +334,7 @@ def dashboard():
         "dashboard.html",
         incidencias=activas_ordenadas,
         activas_hfc_json=json.dumps(activas_hfc_list),
+        gemelos_hfc_json=json.dumps(planos_repo.listar_planos_gemelos_hfc()),
         personal_list=personal_activos,
         hora_actual=hora_actual,
         inc_completar=inc_completar,
@@ -460,8 +461,19 @@ def api_analizar_hfc():
             reg_objs = parse_hfc_text(raw_text)
             rows = [{"plano": r.plano, "equipo": r.equipo, "clientes": r.clientes, "inc": r.inc} for r in reg_objs]
 
-    # Regla HFC: en la columna de INCIDENT_ID sí o sí debe iniciar con INC
-    rows = [r for r in rows if str(r.get("inc", "")).strip().upper().startswith("INC")]
+    # Regla HFC: debe ser un INC válido o un plano gemelo rescatado con "EN PROCESO"
+    rows_filtradas = []
+    for r in rows:
+        inc_str = str(r.get("inc", "")).strip().upper()
+        if inc_str.startswith("INC"):
+            rows_filtradas.append(r)
+        elif "PROCESO" in inc_str or not inc_str:
+            gem = planos_repo.obtener_plano_gemelo(str(r.get("plano", "")))
+            if gem:
+                r["plano"] = gem.plano
+                r["inc"] = "EN PROCESO"
+                rows_filtradas.append(r)
+    rows = rows_filtradas
 
     grupos = planos_repo.obtener_grupos_anillo(rows)
     for g in grupos:
@@ -518,14 +530,21 @@ def _crear_incidencias_individuales(planos, equipos, incs, clientes_list, bosfs,
             continue
         eq_name = equipos[i].strip() if i < len(equipos) else ""
         inc_code = incs[i].strip() if i < len(incs) and incs[i].strip() else ""
-        if not inc_code.upper().startswith("INC"):
+        inc_upper = inc_code.upper()
+        if not inc_upper.startswith("INC") and not ("PROCESO" in inc_upper):
             continue
+
+        gem = planos_repo.obtener_plano_gemelo(p_name)
+        if gem:
+            p_name = gem.plano
+            if not inc_upper.startswith("INC"):
+                inc_code = "EN PROCESO"
 
         # Validar que no exista ya activa para evitar duplicaciones
         p_up = p_name.upper()
         existente = next((
             a for a in hfc_activas 
-            if a.inc == inc_code 
+            if (inc_code.upper().startswith("INC") and a.inc == inc_code)
             or p_up in _extraer_planos_de_incidencia(a)
         ), None)
         if existente:
@@ -794,12 +813,13 @@ def carga_hfc():
     creadas = []
     planos_nuevos = {r.plano.upper() for r in registros}
     for r in registros:
-        inc_code = r.inc if r.inc else ""
-        if not inc_code.upper().startswith("INC"):
+        inc_code = r.inc if r.inc else "EN PROCESO"
+        inc_upper = inc_code.upper()
+        if not inc_upper.startswith("INC") and not ("PROCESO" in inc_upper):
             continue
         p_up = r.plano.upper()
         # Saltar si el plano o el ticket ya está activo en el NOC
-        if p_up in planos_ya_activos or inc_code in incs_ya_activos:
+        if p_up in planos_ya_activos or (inc_upper.startswith("INC") and inc_code in incs_ya_activos):
             continue
             
         pl = planos_repo.obtener_por_id(r.plano)

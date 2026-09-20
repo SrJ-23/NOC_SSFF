@@ -863,6 +863,9 @@
 <script id="activas-hfc-data" type="application/json">
     {{ activas_hfc_json | safe }}
 </script>
+<script id="gemelos-hfc-data" type="application/json">
+    {{ gemelos_hfc_json | safe }}
+</script>
 
 <script>
     const BOSF_OPTIONS = [
@@ -873,6 +876,37 @@
     ];
 
     const ACTIVAS_HFC = JSON.parse(document.getElementById('activas-hfc-data')?.textContent || '[]');
+    const GEMELOS_MAP = JSON.parse(document.getElementById('gemelos-hfc-data')?.textContent || '{}');
+
+    function resolverPlanoGemelo(planoRaw, incRaw) {
+        const pTrim = (planoRaw || "").trim();
+        const incTrim = (incRaw || "").trim();
+        const incUpper = incTrim.toUpperCase();
+        const pUpper = pTrim.toUpperCase();
+
+        if (incUpper.startsWith("INC")) {
+            return { plano: pTrim, inc: incTrim, valido: true };
+        }
+
+        if (incUpper.includes("PROCESO") || !incUpper) {
+            // 1. Si ya termina en -A o -B y existe en GEMELOS_MAP
+            if ((pUpper.endsWith("-A") || pUpper.endsWith("-B")) && GEMELOS_MAP[pUpper]) {
+                return { plano: GEMELOS_MAP[pUpper], inc: "EN PROCESO", valido: true };
+            }
+            // 2. Probar sufijo -A (regla de planos gemelos)
+            const candA = pUpper + "-A";
+            if (GEMELOS_MAP[candA]) {
+                return { plano: GEMELOS_MAP[candA], inc: "EN PROCESO", valido: true };
+            }
+            // 3. Probar sufijo -B (fallback)
+            const candB = pUpper + "-B";
+            if (GEMELOS_MAP[candB]) {
+                return { plano: GEMELOS_MAP[candB], inc: "EN PROCESO", valido: true };
+            }
+        }
+
+        return { plano: pTrim, inc: incTrim, valido: false };
+    }
 
     function abrirModal(id) {
         document.getElementById(id).classList.remove('hidden');
@@ -1244,9 +1278,10 @@
                     const equipo = parts[1];
                     const clientes = parseInt(parts[2]) || 0;
                     const inc = parts[3] ? parts[3].trim() : "";
-                    // La columna INCIDENT_ID debe iniciar obligatoriamente con "INC"
-                    if (!inc.toUpperCase().startsWith("INC")) return;
-                    allRows.push({ plano, equipo, clientes, inc });
+                    
+                    const res = resolverPlanoGemelo(plano, inc);
+                    if (!res.valido) return;
+                    allRows.push({ plano: res.plano, equipo, clientes, inc: res.inc });
                 }
             });
         } else {
@@ -1262,15 +1297,16 @@
                     const equipo = chunk[1];
                     const clientes = parseInt(chunk[2]) || 0;
                     const inc = chunk[3] ? chunk[3].trim() : "";
-                    // La columna INCIDENT_ID debe iniciar obligatoriamente con "INC"
-                    if (!inc.toUpperCase().startsWith("INC")) continue;
-                    allRows.push({ plano, equipo, clientes, inc });
+                    
+                    const res = resolverPlanoGemelo(plano, inc);
+                    if (!res.valido) continue;
+                    allRows.push({ plano: res.plano, equipo, clientes, inc: res.inc });
                 }
             }
         }
 
         if (allRows.length === 0) {
-            if (force) alert("No se detectaron filas válidas de Grafana (el INCIDENT_ID debe iniciar con INC). Verifique el contenido pegado.");
+            if (force) alert("No se detectaron filas válidas de Grafana (el INCIDENT_ID debe iniciar con INC o pertenecer a un plano gemelo con EN PROCESO). Verifique el contenido pegado.");
             pasoTabla.classList.add("hidden");
             return;
         }
@@ -1280,13 +1316,13 @@
         const yaActivas = [];
 
         allRows.forEach(r => {
-            if (!r.inc || !r.inc.toUpperCase().startsWith("INC")) return;
+            const rInc = (r.inc || "").trim().toUpperCase();
+            if (!rInc.startsWith("INC") && !rInc.includes("PROCESO")) return;
 
             const esActiva = ACTIVAS_HFC.some(a => {
-                const rInc = (r.inc || "").trim().toUpperCase();
                 const aInc = (a.inc || "").trim().toUpperCase();
                 const aIncNodo = (a.inc_nodo || "").trim().toUpperCase();
-                if (rInc && (rInc === aInc || rInc === aIncNodo)) return true;
+                if (rInc && !rInc.includes("PROCESO") && (rInc === aInc || rInc === aIncNodo)) return true;
                 if (a.plano && r.plano && a.plano.trim().toUpperCase() === r.plano.trim().toUpperCase()) return true;
                 return false;
             });

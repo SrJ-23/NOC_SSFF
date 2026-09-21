@@ -2,317 +2,473 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <div class="flex items-center space-x-3">
-        <a href="/" class="text-slate-400 hover:text-white transition"><i
-                class="fa-solid fa-arrow-left text-lg"></i></a>
-        <h2 class="text-xl font-bold">Registrar Estado: {{ inc.inc }}</h2>
-        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-300 rounded-md font-mono">{{ inc.departamento }} / {{
-            inc.distrito }}</span>
+<div class="max-w-4xl mx-auto space-y-5">
+    <!-- Cabecera de la Avería -->
+    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-3">
+            <a href="/" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition" title="Regresar al Dashboard">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
+            </a>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h2 class="text-lg font-bold text-white font-mono tracking-tight">{{ inc.inc }}</h2>
+                    {% if es_ftth %}
+                    <span class="text-[10px] px-2 py-0.5 bg-teal-950/80 border border-teal-700/60 text-teal-300 rounded font-bold uppercase tracking-wider">FTTH</span>
+                    {% else %}
+                    <span class="text-[10px] px-2 py-0.5 bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 rounded font-bold uppercase tracking-wider">HFC</span>
+                    {% endif %}
+                    <span class="text-[11px] px-2.5 py-0.5 bg-slate-900 border border-slate-800 text-slate-400 rounded font-mono">
+                        {{ inc.departamento }} / {{ inc.distrito }}
+                    </span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
+                    <span><i class="fa-regular fa-clock mr-1 text-slate-600"></i>Inicio: <strong class="text-slate-400 font-mono">{{ inc.hora_inicio.strftime('%H:%M') }}h</strong></span>
+                    <span>·</span>
+                    <span>BOSF: <strong class="text-slate-400">{{ inc.bosf or 'Pendiente' }}</strong></span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Botón Independiente: Recuperación NCE (Solo FTTH) -->
         {% if es_ftth %}
-        <span
-            class="text-xs px-2 py-0.5 bg-teal-900/60 border border-teal-700 text-teal-300 rounded font-bold">FTTH</span>
+        <div>
+            <button type="button" onclick="abrirModalNce()"
+                class="bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-700/60 hover:border-emerald-500 px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-sm group cursor-pointer">
+                <i class="fa-solid fa-magnifying-glass-chart text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                <span>Verificar Recuperación NCE</span>
+                <span class="text-[9px] bg-emerald-900/80 text-emerald-200 px-1.5 py-0.5 rounded border border-emerald-700/60 font-mono">Huawei</span>
+            </button>
+        </div>
         {% endif %}
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Plantillas Rápidas: Top Actualizaciones -->
-        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-lg space-y-3">
-            <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center">
-                <i class="fa-solid fa-bolt mr-2"></i>Top Actualizaciones
-            </h4>
-            <div class="flex flex-col space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                {% for item in top_updates %}
-                <button type="button" onclick="insertarTexto('{{ item | e }}', 'ACTUALIZACION')"
-                    class="text-left text-xs bg-slate-900 hover:bg-slate-800 hover:border-indigo-500/50 border border-slate-800 text-slate-300 px-3 py-2 rounded-lg transition">
-                    <i class="fa-solid fa-comment-dots text-slate-500 mr-1.5"></i>{{ item }}
-                </button>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Plantillas Rápidas: Top Cierres -->
-        <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-lg space-y-3">
-            <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center">
-                <i class="fa-solid fa-check-circle mr-2"></i>Top Cierres
-            </h4>
-            <div class="flex flex-col space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                {% for item in top_closures %}
-                <button type="button" onclick="insertarTexto('{{ item | e }}', 'CIERRE')"
-                    class="text-left text-xs bg-slate-900 hover:bg-slate-800 hover:border-emerald-500/50 border border-slate-800 text-slate-300 px-3 py-2 rounded-lg transition">
-                    <i class="fa-solid fa-flag-checkered text-emerald-500/70 mr-1.5"></i>{{ item }}
-                </button>
-                {% endfor %}
-            </div>
-        </div>
+    <!-- Segmented Control: 2 Modos (Avance vs Cierre) -->
+    <div class="bg-slate-950 border border-slate-800 p-1.5 rounded-xl flex gap-1.5 shadow-sm">
+        <button type="button" id="tab-modo-avance" onclick="setModo('ACTUALIZACION')"
+            class="flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 bg-indigo-600 text-white shadow">
+            <i class="fa-solid fa-pen-to-square"></i>
+            <span>Avance Operativo</span>
+        </button>
+        <button type="button" id="tab-modo-cierre" onclick="setModo('CIERRE')"
+            class="flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-900">
+            <i class="fa-solid fa-flag-checkered"></i>
+            <span>Cierre de Avería</span>
+        </button>
     </div>
 
-    <!-- Formulario de Envío -->
+    <!-- Formulario Principal -->
     <form action="/actualizar/{{ inc.id }}" method="POST"
-        class="bg-slate-950 border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
+        class="bg-slate-950 border border-slate-800 rounded-xl p-5 shadow-xl space-y-5">
+        <input type="hidden" name="tipo_actualizacion" id="tipo_actualizacion_input" value="ACTUALIZACION">
         <input type="hidden" name="planos_nuevos_str" id="planos_nuevos_str" value="">
         <input type="hidden" name="nuevo_total_onts" id="nuevo_total_onts" value="">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Tipo de
-                    Registro</label>
-                <select id="tipo_actualizacion_select" name="tipo_actualizacion"
-                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
-                    <option value="ACTUALIZACION">ACTUALIZACIÓN (Sigue abierta)</option>
-                    <option value="CIERRE">CIERRE (Solucionado)</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Hora
-                    (HH:MM)</label>
-                <input type="text" name="hora" value="{{ hora_actual }}"
-                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
-            </div>
-        </div>
-
-        <!-- Campos exclusivos FTTH: Causa Raiz + Correctivo + Servicios Adicionales -->
-        {% if es_ftth %}
-        <!-- Herramienta de Recuperación de Alarmas NCE (FTTH) -->
-        <div class="border border-emerald-800/50 bg-emerald-950/20 rounded-xl p-4 space-y-3 shadow-lg">
-            <div class="flex items-center justify-between">
-                <p class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="fa-solid fa-chart-line text-emerald-400"></i>
-                    Verificar Recuperación de Clientes (Alarmas NCE)
-                </p>
-                <span class="text-[10px] text-slate-400 font-mono">Compara alarmas del momento vs avería actual</span>
-            </div>
-
-            <div>
-                <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                    Pegar alarmas actuales de Huawei NCE (Solo de esta avería o zona)
-                </label>
-                <textarea id="nce_alarmas_text" rows="3"
-                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-emerald-500 placeholder-slate-600"
-                    placeholder="Pega aquí el texto exportado o copiado de Huawei NCE con las alarmas del momento..."></textarea>
-            </div>
-
-            <div class="flex items-center gap-3">
-                <button type="button" onclick="analizarRecuperacionFtth('{{ inc.id }}')" id="btn-analizar-ftth"
-                    class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 shadow">
-                    <i class="fa-solid fa-magnifying-glass-chart"></i> Analizar Recuperación
-                </button>
-                <div id="ftth-analisis-loading" class="hidden text-xs text-emerald-400 font-mono flex items-center gap-2">
-                    <i class="fa-solid fa-spinner fa-spin"></i> Analizando contra planos de esta incidencia...
+        <!-- ========================================================= -->
+        <!-- MODO 1: AVANCE OPERATIVO -->
+        <!-- ========================================================= -->
+        <div id="seccion-modo-avance" class="space-y-5">
+            <!-- DIAGNÓSTICO Y RED ADICIONAL (ADELANTE EN AVANCE OPERATIVO) -->
+            {% if es_ftth %}
+            <div class="bg-slate-900/70 border border-slate-800/90 rounded-xl p-4 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-md bg-teal-950/80 border border-teal-700/60 flex items-center justify-center text-teal-400 text-xs">
+                            <i class="fa-solid fa-stethoscope"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Estado y Diagnóstico de la Avería</h4>
+                            <p class="text-[10px] text-slate-500">Parámetros estructurales de la incidencia (modifica solo si aplica)</p>
+                        </div>
+                    </div>
+                    {% if causa_raiz_actual or correctivo_actual or etiqueta_falla_actual %}
+                    <span class="text-[10px] bg-teal-950/60 text-teal-300 border border-teal-800/60 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
+                        <i class="fa-solid fa-circle-check text-teal-400"></i> Datos Registrados
+                    </span>
+                    {% endif %}
                 </div>
-            </div>
 
-            <div id="ftth-analisis-error" class="hidden text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 p-2.5 rounded-lg"></div>
+                <!-- Causa Raiz + Correctivo + Plano/Troncal -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Causa Raíz</label>
+                        <select name="causa_raiz" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                            <option value="">-- Sin cambiar --</option>
+                            {% for cr in causas_raiz %}
+                            <option value="{{ cr }}" {% if cr == causa_raiz_actual %}selected{% endif %}>{{ cr }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Correctivo Aplicado</label>
+                        <select name="correctivo" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                            <option value="">-- Sin cambiar --</option>
+                            {% for co in correctivos %}
+                            <option value="{{ co }}" {% if co == correctivo_actual %}selected{% endif %}>{{ co }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Troncal / Plano en Falla</label>
+                        <input type="text" name="etiqueta_falla" value="{{ etiqueta_falla_actual or '' }}" placeholder="Ej: Troncal 4 o Anillo S01"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono">
+                    </div>
+                </div>
 
-            <!-- Contenedor de Resultados del Análisis -->
-            <div id="ftth-analisis-resultados" class="hidden space-y-3 bg-slate-900/80 border border-emerald-800/40 p-3.5 rounded-lg">
-                <!-- Resumen numérico -->
-                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
-                    <div class="flex items-center gap-3 text-xs">
-                        <span class="text-slate-400">Antes: <strong id="ftth-badge-antes" class="text-slate-200 font-mono">0</strong> ONTs</span>
-                        <span class="text-slate-500">→</span>
-                        <span class="text-slate-400">Ahora: <strong id="ftth-badge-ahora" class="text-amber-400 font-mono">0</strong> ONTs</span>
-                        <span class="text-slate-500">|</span>
-                        <span class="text-emerald-400 font-semibold flex items-center gap-1">
-                            <i class="fa-solid fa-arrow-trend-down"></i>
-                            Recuperados: <strong id="ftth-badge-recuperados" class="font-mono">+0</strong>
+                <!-- Sección Colapsable: Servicios Adicionales (MBTS / Corp / HFC) -->
+                <div class="border-t border-slate-800/80 pt-2">
+                    <button type="button" id="btn-servicios-adicionales" onclick="toggleServiciosAdicionales()"
+                        class="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg bg-slate-950/80 border border-slate-800 hover:border-slate-700 transition group cursor-pointer">
+                        <span class="flex items-center gap-2 text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition">
+                            <i class="fa-solid fa-network-wired text-amber-400"></i>
+                            <span>¿Se afectan otros servicios? (Móvil / Corporativo / HFC)</span>
+                            {% if hfc_nodos_actual or mbts_actual or corp_actual %}
+                            <span class="text-[10px] bg-amber-950/60 text-amber-300 border border-amber-800/60 px-2 py-0.5 rounded-full font-normal">
+                                Impacto Registrado
+                            </span>
+                            {% endif %}
                         </span>
+                        <i id="icon-servicios-adicionales" class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform duration-200 {% if hfc_nodos_actual or mbts_actual or corp_actual %}rotate-180{% endif %}"></i>
+                    </button>
+
+                    <div id="panel-servicios-adicionales" class="{% if not (hfc_nodos_actual or mbts_actual or corp_actual) %}hidden{% endif %} mt-3 space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-2.5 space-y-1">
+                                <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-tv"></i> Nodos Afectados HFC
+                                </span>
+                                <input type="number" name="hfc_nodos" min="0" value="{{ hfc_nodos_actual or '' }}" placeholder="0"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500">
+                            </div>
+                            <div class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-2.5 space-y-1">
+                                <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-users"></i> Clientes Afectados HFC
+                                </span>
+                                <input type="number" name="hfc_clientes_afectados" min="0" value="{{ hfc_afectados_actual or '' }}" placeholder="0"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-2.5 space-y-1">
+                            <span class="text-[10px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-tower-cell"></i> Afectación MBTS (Móvil)
+                            </span>
+                            <textarea name="mbts_detalle" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-300 font-mono resize-none focus:border-violet-500"
+                                placeholder="Ej: 1 de 154 (0.649%) | PROVINCIAS: SAN MARTIN: 1 de 39">{{ mbts_actual or '' }}</textarea>
+                        </div>
+                        <div class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-2.5 space-y-1">
+                            <span class="text-[10px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-building"></i> Afectación Corporativo
+                            </span>
+                            <textarea name="corp_detalle" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-300 font-mono resize-none focus:border-rose-500"
+                                placeholder="Ej: PROVINCIA SAN MARTIN: 09 servicios corporativos + 1 ONPE">{{ corp_actual or '' }}</textarea>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Tabla de planos de la avería -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs">
-                        <thead>
-                            <tr class="text-[10px] font-bold text-slate-500 uppercase border-b border-slate-800">
-                                <th class="text-left py-1.5 pr-3">Plano</th>
-                                <th class="text-right py-1.5 pr-3">ONTs Antes</th>
-                                <th class="text-right py-1.5 pr-3">ONTs Ahora</th>
-                                <th class="text-right py-1.5">Recuperados</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ftth-tabla-comparativa-body" class="divide-y divide-slate-800/50">
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Sugerencia y botón aplicar -->
-                <div class="pt-2 border-t border-slate-800 space-y-2">
-                    <div class="text-xs text-slate-300">
-                        <span class="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">Nota Sugerida para el Historial / WhatsApp:</span>
-                        <p id="ftth-sugerencia-nota" class="font-mono text-emerald-300 bg-slate-950 p-2 rounded border border-slate-800"></p>
-                    </div>
-                    <div class="flex justify-end">
-                        <button type="button" id="btn-aplicar-ftth" onclick="aplicarRecuperacionFtth()"
-                            class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 shadow">
-                            <i class="fa-solid fa-check-double"></i> Aplicar Novedad y Actualizar Impacto
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="border border-teal-800/40 bg-teal-950/20 rounded-xl p-4 space-y-4">
-            <p class="text-[11px] font-bold text-teal-400 uppercase tracking-wider">
-                <i class="fa-solid fa-microscope mr-1.5"></i>Diagnóstico FTTH (opcional — solo modifica si aplica)
-            </p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Causa
-                        Raíz</label>
-                    <select name="causa_raiz"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
-                        <option value="">-- Sin cambiar --</option>
-                        {% for cr in causas_raiz %}
-                        <option value="{{ cr }}" {% if cr==causa_raiz_actual %}selected{% endif %}>{{ cr }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Correctivo
-                        Aplicado</label>
-                    <select name="correctivo"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
-                        <option value="">-- Sin cambiar --</option>
-                        {% for co in correctivos %}
-                        <option value="{{ co }}" {% if co==correctivo_actual %}selected{% endif %}>{{ co }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                        Plano/Troncal en Falla
-                    </label>
-                    <input type="text" name="etiqueta_falla" value="{{ etiqueta_falla_actual or '' }}"
-                        placeholder="Ej: Troncal 4 o Anillo S01"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono">
-                </div>
-            </div>
-            {% if causa_raiz_actual or correctivo_actual or etiqueta_falla_actual %}
-            <div class="text-[10px] text-slate-500 pt-1">
-                <i class="fa-solid fa-circle-check text-teal-600 mr-1"></i>
-                Registrado:
-                {% if causa_raiz_actual %}<strong class="text-slate-400">CR: {{ causa_raiz_actual }}</strong>{% endif %}
-                {% if correctivo_actual %} · <strong class="text-slate-400">CO: {{ correctivo_actual }}</strong>{% endif %}
-                {% if etiqueta_falla_actual %} · <strong class="text-slate-400">Troncal/Plano: {{ etiqueta_falla_actual }}</strong>{% endif %}
             </div>
             {% endif %}
 
-            <!-- ─── Sección colapsable: Servicios Adicionales Afectados ─── -->
-            <div class="border-t border-teal-800/30 pt-3">
-                <!-- Botón para abrir/cerrar -->
-                <button type="button" id="btn-servicios-adicionales"
-                    onclick="toggleServiciosAdicionales()"
-                    class="w-full flex items-center justify-between text-left px-3 py-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 hover:border-amber-700/60 hover:bg-amber-950/20 transition group">
-                    <span class="flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-amber-300 transition">
-                        <i class="fa-solid fa-network-wired text-amber-500/80"></i>
-                        ¿Se afectan otros servicios? (Móvil / Corporativo / HFC)
-                        {% if hfc_nodos_actual or mbts_actual or corp_actual %}
-                        <span class="text-[10px] bg-amber-900/50 text-amber-300 border border-amber-700/60 px-2 py-0.5 rounded-full font-normal">
-                            Impacto Registrado
-                        </span>
-                        {% endif %}
+            <!-- PLANTILLAS RÁPIDAS DE AVANCE (CHIPS COMPACTOS) -->
+            <div class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-3.5 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt text-indigo-400"></i> Plantillas Rápidas de Avance
                     </span>
-                    <i id="icon-servicios-adicionales" class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform duration-200 group-hover:text-amber-300 {% if hfc_nodos_actual or mbts_actual or corp_actual %}rotate-180{% endif %}"></i>
-                </button>
-
-                <!-- Panel expandible -->
-                <div id="panel-servicios-adicionales" class="{% if not (hfc_nodos_actual or mbts_actual or corp_actual) %}hidden{% endif %} mt-3 space-y-4">
-
-                    <!-- Afectación HFC -->
-                    <div class="bg-indigo-950/30 border border-indigo-800/40 rounded-lg p-3 space-y-2">
-                        <p class="text-[11px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-chart-line text-indigo-400"></i>Afectación HFC
-                        </p>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                                    N° de Nodos Afectados
-                                </label>
-                                <input type="number" name="hfc_nodos" min="0" value="{{ hfc_nodos_actual or '' }}" placeholder="0"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                                    Clientes Afectados HFC
-                                </label>
-                                <input type="number" name="hfc_clientes_afectados" min="0" value="{{ hfc_afectados_actual or '' }}" placeholder="0"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
-                            </div>
-                        </div>
-                        <p class="text-[10px] text-slate-500 italic">
-                            <i class="fa-solid fa-circle-info mr-1"></i>El total de clientes del distrito se obtiene automáticamente de la base de datos.
-                        </p>
-                    </div>
-
-                    <!-- Afectación MBTS (Móvil) -->
-                    <div class="bg-violet-950/30 border border-violet-800/40 rounded-lg p-3 space-y-2">
-                        <p class="text-[11px] font-bold text-violet-300 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-tower-cell text-violet-400"></i>Afectación MBTS (Móvil)
-                        </p>
-                        <textarea name="mbts_detalle" rows="3"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-300 focus:outline-none focus:border-violet-500 font-mono resize-none"
-                            placeholder="Ej: 1 de 154 (0.649%) &#10;PROVINCIAS:&#10;* SAN MARTIN: 1 de 39 (2.564%)">{{ mbts_actual or '' }}</textarea>
-                    </div>
-
-                    <!-- Afectación Corporativo -->
-                    <div class="bg-rose-950/30 border border-rose-800/40 rounded-lg p-3 space-y-2">
-                        <p class="text-[11px] font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-building text-rose-400"></i>Afectación Corporativo
-                        </p>
-                        <textarea name="corp_detalle" rows="3"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-300 focus:outline-none focus:border-rose-500 font-mono resize-none"
-                            placeholder="Ej: PROVINCIA SAN MARTIN: 09 servicios corporativos + 1 ONPE">{{ corp_actual or '' }}</textarea>
-                    </div>
-
+                    <span class="text-[10px] text-slate-500">Haz clic para insertar en la nota</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                    {% for item in top_updates %}
+                    <button type="button" onclick="insertarTexto('{{ item | e }}')"
+                        class="text-left text-xs bg-slate-950/80 hover:bg-indigo-950/40 hover:border-indigo-500/60 border border-slate-800 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg transition flex items-center gap-2 group truncate cursor-pointer"
+                        title="{{ item }}">
+                        <i class="fa-solid fa-comment-dots text-slate-500 group-hover:text-indigo-400 text-[10px] shrink-0"></i>
+                        <span class="truncate">{{ item }}</span>
+                    </button>
+                    {% endfor %}
                 </div>
             </div>
-            <!-- ─── Fin sección colapsable ─── -->
-
-        </div>
-        {% endif %}
-
-
-        <div>
-            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                Detalles del avance {% if es_ftth %}<span class="text-slate-500 font-normal text-[11px]">(Opcional para FTTH si solo actualiza impacto)</span>{% else %}(Editable){% endif %}
-            </label>
-            <textarea id="novedad_field" name="novedad" rows="4" {% if not es_ftth %}required{% endif %}
-                class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
-                placeholder="{% if es_ftth %}Escriba un avance o deje en blanco si solo está actualizando el impacto / diagnóstico...{% else %}Escriba o seleccione una plantilla rápida para modificarla...{% endif %}"></textarea>
         </div>
 
-        <div class="flex space-x-3 pt-2">
-            <a href="/"
-                class="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-400 px-4 py-2.5 rounded-lg text-center font-semibold transition text-sm">Cancelar</a>
-            <button type="submit"
-                class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg font-semibold transition text-sm">
-                <i class="fa-solid fa-floppy-disk mr-1.5"></i> Guardar Registro
-            </button>
+        <!-- ========================================================= -->
+        <!-- MODO 2: CIERRE DE AVERÍA -->
+        <!-- ========================================================= -->
+        <div id="seccion-modo-cierre" class="hidden space-y-4">
+            <div class="bg-emerald-950/20 border border-emerald-800/40 rounded-xl p-4 space-y-3">
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-700/60 flex items-center justify-center text-emerald-400 text-sm shrink-0">
+                        <i class="fa-solid fa-flag-checkered"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <h4 class="text-xs font-bold text-emerald-300 uppercase tracking-wider">Cierre Definitivo de Avería</h4>
+                        <p class="text-xs text-slate-400">Esta acción cambiará el estado de la incidencia a <strong>CERRADA</strong> y archivará el soporte final.</p>
+                        {% if causa_raiz_actual or correctivo_actual %}
+                        <div class="flex flex-wrap gap-2 pt-1 text-[11px]">
+                            {% if causa_raiz_actual %}<span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">Causa Raíz: {{ causa_raiz_actual }}</span>{% endif %}
+                            {% if correctivo_actual %}<span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">Correctivo: {{ correctivo_actual }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Plantillas de Cierre -->
+                <div class="pt-2 border-t border-emerald-800/30 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-check-circle text-emerald-400"></i> Plantillas de Cierre
+                        </span>
+                        <span class="text-[10px] text-slate-500">Haz clic para insertar en la nota de cierre</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {% for item in top_closures %}
+                        <button type="button" onclick="insertarTexto('{{ item | e }}')"
+                            class="text-left text-xs bg-slate-950/80 hover:bg-emerald-950/40 hover:border-emerald-500/60 border border-slate-800 text-slate-300 hover:text-white px-3 py-2 rounded-lg transition flex items-start gap-2 group cursor-pointer">
+                            <i class="fa-solid fa-circle-check text-emerald-500/70 group-hover:text-emerald-400 text-xs mt-0.5 shrink-0"></i>
+                            <span class="leading-snug">{{ item }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- CAMPOS COMUNES: HORA Y DETALLES DEL REGISTRO -->
+        <!-- ========================================================= -->
+        <div class="space-y-4 pt-1 border-t border-slate-800/70">
+            <div class="w-48">
+                <label id="label-hora-registro" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Hora del Avance (HH:MM)
+                </label>
+                <div class="relative">
+                    <i class="fa-regular fa-clock absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                    <input type="text" name="hora" value="{{ hora_actual }}"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 pl-8 pr-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Detalles del Registro {% if es_ftth %}<span class="text-slate-500 font-normal text-[11px]">(Opcional si solo actualizas diagnóstico / impacto)</span>{% else %}(Obligatorio){% endif %}
+                </label>
+                <textarea id="novedad_field" name="novedad" rows="4" {% if not es_ftth %}required{% endif %}
+                    class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 placeholder-slate-600 font-mono"
+                    placeholder="{% if es_ftth %}Escribe un avance o selecciona una plantilla rápida superior...{% else %}Escribe o selecciona una plantilla rápida para modificarla...{% endif %}"></textarea>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex space-x-3 pt-2">
+                <a href="/"
+                    class="flex-1 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 px-4 py-2.5 rounded-lg text-center font-semibold transition text-sm flex items-center justify-center border border-slate-800">
+                    Cancelar
+                </a>
+                <button type="submit" id="btn-submit-form"
+                    class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg font-bold transition text-sm flex items-center justify-center gap-2 shadow cursor-pointer">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Avance Operativo
+                </button>
+            </div>
         </div>
     </form>
 </div>
 
+<!-- ========================================================= -->
+<!-- MODAL INDEPENDIENTE: RECUPERACIÓN NCE (HUAWEI FTTH) -->
+<!-- ========================================================= -->
+{% if es_ftth %}
+<div id="modal-nce" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 space-y-4 shadow-2xl relative my-6">
+        <!-- Header Modal -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-emerald-950/80 border border-emerald-700/60 flex items-center justify-center text-emerald-400 text-sm">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-100 uppercase tracking-wider">Verificar Recuperación de Clientes</h3>
+                    <p class="text-[11px] text-slate-400">Compara alarmas del momento de Huawei NCE vs la avería actual</p>
+                </div>
+            </div>
+            <button type="button" onclick="cerrarModalNce()" class="text-slate-400 hover:text-white text-lg px-2 py-1 rounded transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Textarea NCE -->
+        <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                Pegar alarmas actuales de Huawei NCE (Solo de esta avería o zona)
+            </label>
+            <textarea id="nce_alarmas_text" rows="4"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 font-mono focus:outline-none focus:border-emerald-500 placeholder-slate-600"
+                placeholder="Pega aquí el texto copiado de la tabla de alarmas de Huawei NCE..."></textarea>
+        </div>
+
+        <!-- Botón Analizar + Loading -->
+        <div class="flex items-center gap-3">
+            <button type="button" onclick="analizarRecuperacionFtth('{{ inc.id }}')" id="btn-analizar-ftth"
+                class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 shadow cursor-pointer">
+                <i class="fa-solid fa-magnifying-glass-chart"></i> Analizar Recuperación
+            </button>
+            <div id="ftth-analisis-loading" class="hidden text-xs text-emerald-400 font-mono flex items-center gap-2">
+                <i class="fa-solid fa-spinner fa-spin"></i> Comparando contra puertos de esta avería...
+            </div>
+        </div>
+
+        <!-- Error Div -->
+        <div id="ftth-analisis-error" class="hidden text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 p-2.5 rounded-lg"></div>
+
+        <!-- Resultados del Análisis -->
+        <div id="ftth-analisis-resultados" class="hidden space-y-3 bg-slate-950/90 border border-emerald-800/40 p-3.5 rounded-xl">
+            <!-- Badges resumen -->
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                <div class="flex items-center gap-3 text-xs">
+                    <span class="text-slate-400">Antes: <strong id="ftth-badge-antes" class="text-slate-200 font-mono">0</strong> ONTs</span>
+                    <span class="text-slate-600">→</span>
+                    <span class="text-slate-400">Ahora: <strong id="ftth-badge-ahora" class="text-amber-400 font-mono">0</strong> ONTs</span>
+                    <span class="text-slate-700">|</span>
+                    <span class="text-emerald-400 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-arrow-trend-down"></i>
+                        Recuperados: <strong id="ftth-badge-recuperados" class="font-mono text-emerald-300">+0</strong>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tabla comparativa de planos -->
+            <div class="overflow-x-auto max-h-40 overflow-y-auto">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-[10px] font-bold text-slate-500 uppercase border-b border-slate-800">
+                            <th class="text-left py-1.5 pr-3">Plano</th>
+                            <th class="text-right py-1.5 pr-3">ONTs Antes</th>
+                            <th class="text-right py-1.5 pr-3">ONTs Ahora</th>
+                            <th class="text-right py-1.5">Recuperados</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ftth-tabla-comparativa-body" class="divide-y divide-slate-800/50">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Sugerencia y botón aplicar -->
+            <div class="pt-2 border-t border-slate-800 space-y-2">
+                <div class="text-xs text-slate-300">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">Nota Sugerida:</span>
+                    <p id="ftth-sugerencia-nota" class="font-mono text-emerald-300 bg-slate-900 p-2 rounded border border-slate-800 text-[11px]"></p>
+                </div>
+                <div class="flex justify-end gap-2 pt-1">
+                    <button type="button" onclick="cerrarModalNce()"
+                        class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer">
+                        Descartar
+                    </button>
+                    <button type="button" id="btn-aplicar-ftth" onclick="aplicarRecuperacionFtth()"
+                        class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-1.5 rounded-lg text-xs transition flex items-center gap-2 shadow cursor-pointer">
+                        <i class="fa-solid fa-check-double"></i> Aplicar al Registro
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Modal si no hay resultados -->
+        <div id="ftth-modal-footer-normal" class="flex justify-end pt-2 border-t border-slate-800">
+            <button type="button" onclick="cerrarModalNce()"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <script>
-    function insertarTexto(texto, tipo) {
-        const field = document.getElementById("novedad_field");
-        field.value = texto;
-        if (tipo) {
-            document.getElementById("tipo_actualizacion_select").value = tipo;
+    // Gestión de Modos: Avance vs Cierre
+    function setModo(modo) {
+        const inputTipo = document.getElementById("tipo_actualizacion_input");
+        const tabAvance = document.getElementById("tab-modo-avance");
+        const tabCierre = document.getElementById("tab-modo-cierre");
+        const secAvance = document.getElementById("seccion-modo-avance");
+        const secCierre = document.getElementById("seccion-modo-cierre");
+        const btnSubmit = document.getElementById("btn-submit-form");
+        const labelHora = document.getElementById("label-hora-registro");
+
+        if (modo === "CIERRE") {
+            inputTipo.value = "CIERRE";
+
+            // Pestañas
+            tabCierre.className = "flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 bg-emerald-600 text-white shadow cursor-pointer";
+            tabAvance.className = "flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-900 cursor-pointer";
+
+            // Secciones
+            secAvance.classList.add("hidden");
+            secCierre.classList.remove("hidden");
+
+            // Botón de Submit
+            btnSubmit.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg font-bold transition text-sm flex items-center justify-center gap-2 shadow cursor-pointer";
+            btnSubmit.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Confirmar y Cerrar Avería';
+
+            if (labelHora) labelHora.textContent = "Hora del Cierre (HH:MM)";
+        } else {
+            inputTipo.value = "ACTUALIZACION";
+
+            // Pestañas
+            tabAvance.className = "flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 bg-indigo-600 text-white shadow cursor-pointer";
+            tabCierre.className = "flex-1 py-2.5 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-900 cursor-pointer";
+
+            // Secciones
+            secAvance.classList.remove("hidden");
+            secCierre.classList.add("hidden");
+
+            // Botón de Submit
+            btnSubmit.className = "flex-1 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-lg font-bold transition text-sm flex items-center justify-center gap-2 shadow cursor-pointer";
+            btnSubmit.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar Avance Operativo';
+
+            if (labelHora) labelHora.textContent = "Hora del Avance (HH:MM)";
         }
-        field.focus();
+    }
+
+    function insertarTexto(texto) {
+        const field = document.getElementById("novedad_field");
+        if (field) {
+            field.value = texto;
+            field.focus();
+        }
     }
 
     function toggleServiciosAdicionales() {
         const panel = document.getElementById("panel-servicios-adicionales");
         const icon = document.getElementById("icon-servicios-adicionales");
+        if (!panel) return;
         const isHidden = panel.classList.toggle("hidden");
-        if (isHidden) {
-            icon.classList.remove("rotate-180");
-        } else {
-            icon.classList.add("rotate-180");
+        if (icon) {
+            if (isHidden) {
+                icon.classList.remove("rotate-180");
+            } else {
+                icon.classList.add("rotate-180");
+            }
         }
     }
+
+    {% if es_ftth %}
+    // Modal NCE
+    function abrirModalNce() {
+        const modal = document.getElementById("modal-nce");
+        if (modal) {
+            modal.classList.remove("hidden");
+            setTimeout(() => {
+                const area = document.getElementById("nce_alarmas_text");
+                if (area) area.focus();
+            }, 100);
+        }
+    }
+
+    function cerrarModalNce() {
+        const modal = document.getElementById("modal-nce");
+        if (modal) {
+            modal.classList.add("hidden");
+        }
+    }
+
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+            cerrarModalNce();
+        }
+    });
 
     let ultimaEvaluacionFtth = null;
 
@@ -321,6 +477,7 @@
         const errorDiv = document.getElementById("ftth-analisis-error");
         const loadingDiv = document.getElementById("ftth-analisis-loading");
         const resultsDiv = document.getElementById("ftth-analisis-resultados");
+        const normalFooter = document.getElementById("ftth-modal-footer-normal");
         const btn = document.getElementById("btn-analizar-ftth");
 
         errorDiv.classList.add("hidden");
@@ -381,6 +538,7 @@
 
             document.getElementById("ftth-sugerencia-nota").textContent = data.sugerencia_nota;
             resultsDiv.classList.remove("hidden");
+            if (normalFooter) normalFooter.classList.add("hidden");
 
         } catch (err) {
             loadingDiv.classList.add("hidden");
@@ -400,10 +558,11 @@
             novedadField.focus();
         }
 
-        // 2. Asignar tipo de actualizacion (CIERRE si es total, ACTUALIZACION si no)
-        const selectTipo = document.getElementById("tipo_actualizacion_select");
-        if (selectTipo) {
-            selectTipo.value = ultimaEvaluacionFtth.accion_sugerida;
+        // 2. Asignar tipo de actualización (CIERRE si es total, ACTUALIZACION si no)
+        if (ultimaEvaluacionFtth.accion_sugerida === "CIERRE") {
+            setModo("CIERRE");
+        } else {
+            setModo("ACTUALIZACION");
         }
 
         // 3. Pasar datos para actualizar observaciones de la incidencia
@@ -412,13 +571,9 @@
         if (hiddenPlanos) hiddenPlanos.value = ultimaEvaluacionFtth.planos_nuevos_str;
         if (hiddenOnts) hiddenOnts.value = ultimaEvaluacionFtth.total_ahora;
 
-        // Feedback visual en el botón
-        const btnAplicar = document.getElementById("btn-aplicar-ftth");
-        if (btnAplicar) {
-            btnAplicar.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>¡Aplicado a la Novedad!';
-            btnAplicar.classList.remove("bg-teal-600", "hover:bg-teal-500");
-            btnAplicar.classList.add("bg-emerald-700");
-        }
+        // Cerrar modal
+        cerrarModalNce();
     }
+    {% endif %}
 </script>
 {% endblock %}

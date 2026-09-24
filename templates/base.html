@@ -416,8 +416,121 @@
         window.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 cerrarModalDetalle();
+                cerrarModalWsspCierre();
             }
         });
+    </script>
+
+    <!-- ======================================================== -->
+    <!-- MODAL GLOBAL: Mensaje WhatsApp de Cierre HFC              -->
+    <!-- ======================================================== -->
+    <div id="modal-wssp-cierre" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4"
+        onclick="if(event.target === this) cerrarModalWsspCierre()">
+        <div class="bg-slate-950 border border-emerald-800/60 rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
+            onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-emerald-800/40 flex items-center justify-between bg-emerald-950/30">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-emerald-200">Mensaje de Cierre para WhatsApp</h3>
+                        <p class="text-xs text-slate-400">Copie el mensaje de cierre y envíelo al grupo de WhatsApp correspondiente.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="cerrarModalWsspCierre()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div id="wssp-cierre-body" class="p-6 overflow-y-auto flex-1 space-y-4">
+                <!-- Mensajes dinámicos inyectados por JS -->
+            </div>
+
+            <!-- Footer -->
+            <div class="px-6 py-3.5 border-t border-emerald-800/40 bg-emerald-950/20 flex items-center justify-between">
+                <span class="text-xs text-slate-500 flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    Cierre procesado exitosamente
+                </span>
+                <button type="button" onclick="cerrarModalWsspCierre()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg font-semibold text-xs transition shadow cursor-pointer flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Cerrar y Continuar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function abrirModalWsspCierre(mensajes) {
+            const modal = document.getElementById('modal-wssp-cierre');
+            const body = document.getElementById('wssp-cierre-body');
+            if (!modal || !body) return;
+            body.innerHTML = '';
+
+            mensajes.forEach((msg, idx) => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-3';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-flag-checkered text-emerald-400"></i>
+                            Cierre: <span class="font-mono text-white ml-1">${msg.inc}</span>
+                        </span>
+                        <button type="button" onclick="copiarWsspCierre(${idx})"
+                            class="wssp-cierre-btn bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition shadow flex items-center space-x-1.5 cursor-pointer">
+                            <i class="fa-solid fa-clipboard text-xs"></i>
+                            <span>Copiar Mensaje</span>
+                        </button>
+                    </div>
+                    <textarea id="wssp-cierre-text-${idx}" readonly rows="12"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 select-all resize-y shadow-inner leading-relaxed">${msg.mensaje}</textarea>
+                `;
+                body.appendChild(card);
+            });
+
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function cerrarModalWsspCierre() {
+            const modal = document.getElementById('modal-wssp-cierre');
+            if (modal) modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+
+            // Si hay una URL pendiente de redirección, navegar ahora
+            if (window._wsspCierreRedirectUrl) {
+                const url = window._wsspCierreRedirectUrl;
+                window._wsspCierreRedirectUrl = null;
+                window.location.href = url;
+            }
+        }
+
+        function copiarWsspCierre(idx) {
+            const ta = document.getElementById('wssp-cierre-text-' + idx);
+            if (!ta) return;
+            ta.select();
+            ta.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(ta.value).then(() => {
+                const btns = document.querySelectorAll('.wssp-cierre-btn');
+                const btn = btns[idx];
+                if (btn) {
+                    const orig = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check text-xs"></i> <span>¡Copiado!</span>';
+                    btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+                    btn.classList.add('bg-emerald-500');
+                    setTimeout(() => {
+                        btn.innerHTML = orig;
+                        btn.classList.remove('bg-emerald-500');
+                        btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+                    }, 2000);
+                }
+            }).catch(e => {
+                document.execCommand("copy");
+            });
+        }
     </script>
 </body>
 

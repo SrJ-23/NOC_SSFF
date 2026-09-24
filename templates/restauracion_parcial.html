@@ -193,5 +193,45 @@ function copiarMensaje(id) {
         document.execCommand("copy");
     });
 }
+
+{% if cierres_completos %}
+// Interceptar envío del formulario para mostrar popup de WhatsApp si hay cierres HFC
+(function() {
+    const form = document.querySelector('form[action="/restauracion-parcial"]');
+    if (!form) return;
+
+    form.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Procesando...';
+        }
+
+        try {
+            const formData = new FormData(form);
+            const resp = await fetch(form.action, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+                body: formData
+            });
+
+            const contentType = resp.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+                const data = await resp.json();
+                if (data.ok && data.mensajes_wssp && data.mensajes_wssp.length > 0) {
+                    window._wsspCierreRedirectUrl = '/';
+                    abrirModalWsspCierre(data.mensajes_wssp);
+                    return;
+                }
+            }
+            window.location.href = '/';
+        } catch (err) {
+            console.error("Error procesando restauración parcial:", err);
+            form.submit();
+        }
+    });
+})();
+{% endif %}
 </script>
 {% endblock %}

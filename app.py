@@ -983,6 +983,12 @@ def restauracion_parcial():
                 incidencias_repo.guardar(inc_actualizada)
 
     # También procesar cierres completos que vengan embebidos en el mismo formulario
+    is_json_request = (
+        request.headers.get("Accept") == "application/json"
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+    mensajes_wssp = []
+
     for key, value in request.form.items():
         if key.startswith("cierre_"):
             inc_id = key.replace("cierre_", "")
@@ -993,6 +999,22 @@ def restauracion_parcial():
                 inc_c = replace(inc_match, estado=EstadoIncidencia.CERRADA,
                                 observaciones=obs_c, ultima_actualizacion=hora_actual)
                 incidencias_repo.guardar(inc_c)
+
+                # Generar mensaje WhatsApp de cierre para HFC
+                if inc_match.tipo == TipoIncidencia.HFC:
+                    plano_name, _ = _obtener_plano_y_clientes(inc_c)
+                    plano_obj = planos_repo.obtener_por_id(plano_name) if plano_name else None
+                    personal_list = personal_repo.listar_activos()
+                    pers_obj = next((p for p in personal_list if p.nombre == inc_c.bosf), None)
+                    tel = pers_obj.telefono if pers_obj else None
+                    wssp_msg = generate_whatsapp_message(inc_c, plano_obj, tel)
+                    mensajes_wssp.append({
+                        "inc": inc_c.inc or inc_c.id,
+                        "mensaje": wssp_msg
+                    })
+
+    if is_json_request and mensajes_wssp:
+        return {"ok": True, "mensajes_wssp": mensajes_wssp}
 
     flash("Actualizacion de impacto guardada correctamente.", "success")
     return redirect(url_for("dashboard"))
@@ -1217,6 +1239,13 @@ def ftth_actualizar_impacto():
         actualizados += 1
 
     # ── Cerrar planos completamente recuperados ─────────────────────────────
+    is_json_request = (
+        request.headers.get("Accept") == "application/json"
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+    mensajes_wssp = []
+    personal_list = personal_repo.listar_activos() if is_json_request else []
+
     for key, value in request.form.items():
         if not key.startswith("cierre_ftth_"):
             continue
@@ -1236,6 +1265,23 @@ def ftth_actualizar_impacto():
         )
         incidencias_repo.guardar(inc_c)
         actualizados += 1
+
+        if is_json_request:
+            plano_name, _ = _obtener_plano_y_clientes(inc_c)
+            plano_obj = planos_repo.obtener_por_id(plano_name) if plano_name else None
+            pers_obj = next((p for p in personal_list if p.nombre == inc_c.bosf), None)
+            tel = pers_obj.telefono if pers_obj else None
+            wssp_msg = generate_whatsapp_message(inc_c, plano_obj, tel)
+            mensajes_wssp.append({
+                "inc": inc_c.inc or inc_c.id,
+                "mensaje": wssp_msg
+            })
+
+    if is_json_request and mensajes_wssp:
+        return {
+            "ok": True,
+            "mensajes_wssp": mensajes_wssp
+        }
 
     if actualizados:
         flash(f"Impacto FTTH actualizado en {actualizados} incidencia(s).", "success")
@@ -1278,6 +1324,12 @@ def completar_incidencia(id_):
 def procesar_cierre_masivo():
     """Procesa los motivos de cierre ingresados para las averías recuperadas"""
     hora_actual = now_peru().strftime("%H:%M")
+    is_json_request = (
+        request.headers.get("Accept") == "application/json"
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+    
+    mensajes_wssp = []
     
     for key, value in request.form.items():
         if key.startswith("motivo_"):
@@ -1296,6 +1348,22 @@ def procesar_cierre_masivo():
                     ultima_actualizacion=now_peru()
                 )
                 incidencias_repo.guardar(inc_actualizada)
+
+                # Generar mensaje WhatsApp de cierre para HFC
+                if inc_match.tipo == TipoIncidencia.HFC:
+                    plano_name, _ = _obtener_plano_y_clientes(inc_actualizada)
+                    plano_obj = planos_repo.obtener_por_id(plano_name) if plano_name else None
+                    personal_list = personal_repo.listar_activos()
+                    pers_obj = next((p for p in personal_list if p.nombre == inc_actualizada.bosf), None)
+                    tel = pers_obj.telefono if pers_obj else None
+                    wssp_msg = generate_whatsapp_message(inc_actualizada, plano_obj, tel)
+                    mensajes_wssp.append({
+                        "inc": inc_actualizada.inc or inc_actualizada.id,
+                        "mensaje": wssp_msg
+                    })
+
+    if is_json_request:
+        return {"ok": True, "mensajes_wssp": mensajes_wssp}
                 
     flash("Cierres masivos procesados de manera exitosa.", "success")
     return redirect(url_for("dashboard"))
@@ -1727,6 +1795,27 @@ def actualizar(id_):
             ultima_actualizacion=now_peru()
         )
         incidencias_repo.guardar(inc_actualizada)
+
+        # Para cierre (HFC o FTTH): si la petición es AJAX, devolver mensaje WhatsApp de cierre
+        is_json_request = (
+            request.headers.get("Accept") == "application/json"
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        )
+        if is_json_request and nuevo_estado == EstadoIncidencia.CERRADA:
+            plano_name, _ = _obtener_plano_y_clientes(inc_actualizada)
+            plano_obj = planos_repo.obtener_por_id(plano_name) if plano_name else None
+            personal_list = personal_repo.listar_activos()
+            pers_obj = next((p for p in personal_list if p.nombre == inc_actualizada.bosf), None)
+            tel = pers_obj.telefono if pers_obj else None
+            wssp_msg = generate_whatsapp_message(inc_actualizada, plano_obj, tel)
+            return {
+                "ok": True,
+                "mensajes_wssp": [{
+                    "inc": inc_actualizada.inc or inc_actualizada.id,
+                    "mensaje": wssp_msg
+                }]
+            }
+
         flash("Soporte operativo registrado en la base de datos.", "success")
         return redirect(url_for("dashboard"))
         

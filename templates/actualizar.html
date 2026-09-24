@@ -575,5 +575,47 @@
         cerrarModalNce();
     }
     {% endif %}
+
+    // Interceptor AJAX para cierre de incidencia (HFC y FTTH): muestra popup de WhatsApp
+    (function() {
+        const form = document.querySelector('form[action^="/actualizar/"]');
+        if (!form) return;
+
+        form.addEventListener("submit", async function(e) {
+            const tipoInput = document.getElementById("tipo_actualizacion_input");
+            if (!tipoInput || tipoInput.value !== "CIERRE") return; // Solo interceptar cierres
+
+            e.preventDefault();
+            const btn = document.getElementById("btn-submit-form");
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Procesando cierre...';
+            }
+
+            try {
+                const formData = new FormData(form);
+                const resp = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    body: formData
+                });
+
+                const contentType = resp.headers.get("content-type") || "";
+                if (contentType.includes("application/json")) {
+                    const data = await resp.json();
+                    if (data.ok && data.mensajes_wssp && data.mensajes_wssp.length > 0) {
+                        window._wsspCierreRedirectUrl = '/';
+                        abrirModalWsspCierre(data.mensajes_wssp);
+                        return;
+                    }
+                }
+                // Si no hay mensajes o no es JSON, redirigir normalmente
+                window.location.href = '/';
+            } catch (err) {
+                console.error("Error procesando cierre:", err);
+                form.submit();
+            }
+        });
+    })();
 </script>
 {% endblock %}

@@ -14,7 +14,7 @@
             <p class="text-xs text-slate-500 mt-1">Los siguientes planos ya no aparecen con alertas activas en el reporte de Grafana. Seleccione o escriba un motivo para documentar el cierre.</p>
         </div>
 
-        <form action="/procesar-cierre-masivo" method="POST" class="space-y-4">
+        <form id="form-cierre-masivo" action="/procesar-cierre-masivo" method="POST" class="space-y-4">
             {% for inc in desaparecidas %}
                 <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4">
                     <div class="flex items-center justify-between">
@@ -54,7 +54,7 @@
             {% endfor %}
 
             <div class="flex justify-end pt-2">
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-lg transition text-sm">
+                <button type="submit" id="btn-cierre-masivo" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-lg transition text-sm cursor-pointer">
                     <i class="fa-solid fa-lock mr-1.5"></i> Confirmar Cierre de Recuperadas
                 </button>
             </div>
@@ -66,5 +66,36 @@
 function actualizarMotivo(id, valor) {
     document.getElementById("motivo_" + id).value = valor;
 }
+
+document.getElementById("form-cierre-masivo").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const btn = document.getElementById("btn-cierre-masivo");
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1.5"></i> Procesando cierres...';
+    }
+
+    try {
+        const formData = new FormData(form);
+        const resp = await fetch(form.action, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' },
+            body: formData
+        });
+        const data = await resp.json();
+
+        if (data.ok && data.mensajes_wssp && data.mensajes_wssp.length > 0) {
+            window._wsspCierreRedirectUrl = '/';
+            abrirModalWsspCierre(data.mensajes_wssp);
+        } else {
+            window.location.href = '/';
+        }
+    } catch (err) {
+        console.error("Error procesando cierres:", err);
+        form.removeAttribute("data-submitted");
+        form.submit();
+    }
+});
 </script>
 {% endblock %}

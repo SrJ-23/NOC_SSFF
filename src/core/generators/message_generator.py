@@ -280,7 +280,7 @@ def generate_whatsapp_message(
             )
 
         if is_closed:
-            tipo_msg = "*FINAL / CIERRE*"
+            tipo_msg = "*CIERRE*"
             cuerpo_actualizacion = (
                 f"*SOLUCIONADO:*\n"
                 f"{fecha_impacto_str}\n"

@@ -144,7 +144,7 @@
                         class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
                         <option value="">-- Sin Asignar --</option>
                         {% for p in personal_activos %}
-                        <option value="{{ p.nombre }}">{{ p.nombre }}{{ (' -' + p.telefono) if p.telefono else '' }}
+                        <option value="{{ p.nombre }}" {% if p.nombre == 'Miguel Barja' %}selected{% endif %}>{{ p.nombre }}{{ (' -' + p.telefono) if p.telefono else '' }}
                         </option>
                         {% endfor %}
                     </select>
@@ -153,9 +153,8 @@
                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                         Hora Avería * {% if fecha_averia %}<span class="text-[9px] text-teal-400 font-mono font-normal">({{ fecha_averia }})</span>{% endif %}
                     </label>
-                    <input type="text" name="hora_averia" value="{{ hora_actual }}" required
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono"
-                        placeholder="HH:MM">
+                    <input type="time" name="hora_averia" value="{{ hora_actual }}" required
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono text-center [color-scheme:dark]">
                 </div>
             </div>
 

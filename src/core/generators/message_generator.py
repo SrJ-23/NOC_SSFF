@@ -41,10 +41,6 @@ def generate_whatsapp_message(
             planos_items = [p.strip() for p in planos_match.group(1).split(",") if p.strip()]
             if len(planos_items) >= 2:
                 es_masiva_hfc = True
-        if distritos_detalle_match and distritos_detalle_match.group(1).strip():
-            es_masiva_hfc = True
-        elif anillo_match and not anillo_match.group(1).strip().startswith("__SIN_ANILLO__"):
-            es_masiva_hfc = True
 
     # Determinar si está cerrada
     is_closed = incidencia.estado == EstadoIncidencia.CERRADA
@@ -341,7 +337,14 @@ def generate_whatsapp_message(
     plano_id = plano.plano if plano else ""
     if not plano_id:
         plano_match = re.search(r"Plano:\s*(\S+)", incidencia.observaciones)
-        plano_id = plano_match.group(1) if plano_match else incidencia.id
+        if plano_match:
+            plano_id = plano_match.group(1)
+        else:
+            planos_single_match = re.search(r"Planos:\s*([^,\n(]+)", incidencia.observaciones)
+            if planos_single_match:
+                plano_id = planos_single_match.group(1).strip()
+            else:
+                plano_id = incidencia.id
 
     equipo_match = re.search(r"Equipo:\s*([^\n]+)", incidencia.observaciones)
     equipo_val = cmts_olt or (equipo_match.group(1).strip() if equipo_match else "")

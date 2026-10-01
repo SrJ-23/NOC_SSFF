@@ -146,19 +146,48 @@ DISTRITO(S):
         {% endfor %}
 
         {% if cierres_completos %}
-        <div class="bg-red-950/30 border border-red-800/40 rounded-xl p-4">
-            <p class="text-sm font-bold text-red-400 mb-2">
-                <i class="fa-solid fa-lock mr-1.5"></i>
-                Tambien hay {{ cierres_completos | length }} averia(s) con cierre completo:
-            </p>
-            <ul class="space-y-1">
+        <div class="bg-red-950/20 border border-red-800/40 rounded-xl p-5 space-y-3 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-bold text-red-400">
+                        <i class="fa-solid fa-lock mr-1.5"></i>
+                        Averías con Cierre Completo Detectadas ({{ cierres_completos | length }})
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Todos los nodos de estas incidencias ya no figuran en Grafana. Si alguna aún no debe cerrarse, pulse <strong>"Aún no se cierra"</strong> para mantenerla activa.
+                    </p>
+                </div>
+            </div>
+            <div class="space-y-2.5 mt-2">
                 {% for inc_c in cierres_completos %}
-                <li class="text-xs text-slate-400 font-mono">- {{ inc_c.inc }} / {{ inc_c.departamento }} / {{ inc_c.distrito }}</li>
+                <div id="cierre_item_{{ inc_c.id }}" class="flex items-center justify-between flex-wrap gap-2 bg-slate-900/80 border border-slate-700/60 rounded-lg p-3 transition">
+                    <div class="flex items-center flex-wrap gap-2">
+                        <span class="text-xs font-mono font-bold text-red-400 bg-red-950/50 border border-red-800/60 px-2 py-0.5 rounded">{{ inc_c.inc }}</span>
+                        {% if inc_c.planos_str %}
+                        <span class="text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded">
+                            <i class="fa-solid fa-tower-broadcast text-[10px]"></i> {{ inc_c.planos_str }}
+                        </span>
+                        {% endif %}
+                        <span class="text-xs text-slate-400">({{ inc_c.departamento }} / {{ inc_c.distrito }})</span>
+                        <span id="badge_cierre_parcial_{{ inc_c.id }}" class="hidden text-xs font-bold px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500 text-amber-300">
+                            <i class="fa-solid fa-hourglass-half mr-1"></i> Aún no se cierra (Se mantendrá activa)
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" 
+                                onclick="toggleExcluirCierreParcial('{{ inc_c.id }}')" 
+                                id="btn_excluir_cierre_parcial_{{ inc_c.id }}" 
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 border border-amber-500/50 text-amber-400 hover:bg-amber-950/50 hover:border-amber-400 transition cursor-pointer flex items-center gap-1.5"
+                                title="Excluir esta avería del cierre y mantenerla abierta en el NOC">
+                            <i class="fa-solid fa-pause"></i>
+                            <span id="btn_text_parcial_{{ inc_c.id }}">Aún no se cierra</span>
+                        </button>
+                        <input type="hidden" id="excluir_cierre_{{ inc_c.id }}" name="excluir_cierre_{{ inc_c.id }}" value="0">
+                        <input type="hidden" id="cierre_{{ inc_c.id }}" name="cierre_{{ inc_c.id }}" value="Se valida restablecimiento de servicios. Se cierra notificacion.">
+                    </div>
+                </div>
                 {% endfor %}
-            </ul>
-            {% for inc_c in cierres_completos %}
-            <input type="hidden" name="cierre_{{ inc_c.id }}" value="Se valida restablecimiento de servicios. Se cierra notificacion.">
-            {% endfor %}
+            </div>
         </div>
         {% endif %}
 
@@ -167,7 +196,7 @@ DISTRITO(S):
                 <i class="fa-solid fa-arrow-left mr-1.5"></i>Cancelar y volver
             </a>
             <button type="submit"
-                class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-8 py-2.5 rounded-lg shadow-lg transition flex items-center gap-2 text-sm">
+                class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-8 py-2.5 rounded-lg shadow-lg transition flex items-center gap-2 text-sm cursor-pointer">
                 <i class="fa-solid fa-floppy-disk"></i>
                 Confirmar y Actualizar Impacto
             </button>
@@ -192,6 +221,41 @@ function copiarMensaje(id) {
     }).catch(function() {
         document.execCommand("copy");
     });
+}
+
+function toggleExcluirCierreParcial(id) {
+    const hiddenExcluir = document.getElementById("excluir_cierre_" + id);
+    const hiddenCierre = document.getElementById("cierre_" + id);
+    const badge = document.getElementById("badge_cierre_parcial_" + id);
+    const btn = document.getElementById("btn_excluir_cierre_parcial_" + id);
+    const item = document.getElementById("cierre_item_" + id);
+    if (!hiddenExcluir) return;
+
+    if (hiddenExcluir.value === "0") {
+        hiddenExcluir.value = "1";
+        if (hiddenCierre) hiddenCierre.disabled = true;
+        if (badge) badge.classList.remove("hidden");
+        if (item) {
+            item.classList.remove("border-slate-700/60", "bg-slate-900/80");
+            item.classList.add("border-amber-700/60", "bg-slate-950/80");
+        }
+        if (btn) {
+            btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition cursor-pointer flex items-center gap-1.5";
+            btn.innerHTML = '<i class="fa-solid fa-rotate-left"></i><span>Cerrar incidencia</span>';
+        }
+    } else {
+        hiddenExcluir.value = "0";
+        if (hiddenCierre) hiddenCierre.disabled = false;
+        if (badge) badge.classList.add("hidden");
+        if (item) {
+            item.classList.remove("border-amber-700/60", "bg-slate-950/80");
+            item.classList.add("border-slate-700/60", "bg-slate-900/80");
+        }
+        if (btn) {
+            btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 border border-amber-500/50 text-amber-400 hover:bg-amber-950/50 hover:border-amber-400 transition cursor-pointer flex items-center gap-1.5";
+            btn.innerHTML = '<i class="fa-solid fa-pause"></i><span>Aún no se cierra</span>';
+        }
+    }
 }
 
 {% if cierres_completos %}

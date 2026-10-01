@@ -58,6 +58,7 @@ TOP_CLOSURES = [
     "Se instala GGEE, Se verifica servicios restablecidos. Se cierra notificacion.",
     "Personal realiza mantenimiento en equipos de AA. Temperatura se reestablece en valores normales.",
     "Se retorna energia comercial. Se normaliza temperaturas.",
+    "Personal realiza acciones correctivas. Se verifica servicios restablecidos. Se cierra notificacion.",
     "Retorna energia comercial. Se verifica servicios restablecidos. Se cierra notificacion."
 ]
 
@@ -654,11 +655,30 @@ def carga_hfc():
             except (TypeError, ValueError):
                 total_afectados = 0
 
-            # Extraer departamento y provincia del primer plano
-            primer_plano = planos_str.split(",")[0].split("(")[0].strip() if planos_str else ""
-            pl_obj = planos_repo.obtener_por_id(primer_plano) if primer_plano else None
-            dept = pl_obj.departamento if pl_obj else "LIMA"
-            prov = pl_obj.provincia if pl_obj else "LIMA"
+            # Si solo tiene 1 plano (o al descartar quedó solo 1), se crea como individual para no dejar una masiva de 1 plano
+            if len(planos_grupo) <= 1:
+                primer_plano = planos_grupo[0] if planos_grupo else (planos_str.split("(")[0].strip().upper() if planos_str else "")
+                if primer_plano:
+                    n_info = (grupo.get("nodos") or [{}])[0] if grupo.get("nodos") else {}
+                    eq_val = n_info.get("equipo", "")
+                    cli_val = n_info.get("clientes", total_afectados)
+                    inc_ind = inc_principal
+                    creada = _crear_incidencias_individuales(
+                        [primer_plano], [eq_val], [inc_ind], [cli_val], [bosf_val], [hora_val], hfc_activas
+                    )
+                    creadas_individuales.extend(creada)
+                continue
+
+            # Extraer departamento y provincia del grupo o del primer plano
+            dept = (grupo.get("departamento") or "").strip()
+            prov = (grupo.get("provincia") or "").strip()
+            if not dept or not prov:
+                primer_plano = planos_str.split(",")[0].split("(")[0].strip() if planos_str else ""
+                pl_obj = planos_repo.obtener_por_id(primer_plano) if primer_plano else None
+                if not dept:
+                    dept = pl_obj.departamento if pl_obj else "LIMA"
+                if not prov:
+                    prov = pl_obj.provincia if pl_obj else "LIMA"
 
             nodos_lista = grupo.get("nodos") or []
             if not nodos_lista:
@@ -723,16 +743,17 @@ def carga_hfc():
         )
 
         total_creadas = grupos_creados + len(creadas_individuales)
+        cierres_completos_vista = _preparar_cierres_vista(cierres_completos)
         if restauraciones_parciales:
             return render_template(
                 "restauracion_parcial.html",
                 restauraciones=restauraciones_parciales,
-                cierres_completos=cierres_completos,
+                cierres_completos=cierres_completos_vista,
                 creadas_count=total_creadas,
                 top_closures=TOP_CLOSURES
             )
         if cierres_completos:
-            return render_template("cierre_masivo.html", desaparecidas=cierres_completos, creadas_count=total_creadas, top_closures=TOP_CLOSURES)
+            return render_template("cierre_masivo.html", desaparecidas=cierres_completos_vista, creadas_count=total_creadas, top_closures=TOP_CLOSURES)
 
         if grupos_creados == 0:
             flash("No se pudo crear ninguna Incidencia Masiva: no se recibieron nodos agrupados.", "warning")
@@ -774,16 +795,17 @@ def carga_hfc():
         cierres_completos, restauraciones_parciales = _separar_cierres_y_restauraciones(
             hfc_activas, planos_en_reporte_up, grafana_rows_raw
         )
+        cierres_completos_vista = _preparar_cierres_vista(cierres_completos)
         if restauraciones_parciales:
             return render_template(
                 "restauracion_parcial.html",
                 restauraciones=restauraciones_parciales,
-                cierres_completos=cierres_completos,
+                cierres_completos=cierres_completos_vista,
                 creadas_count=len(creadas),
                 top_closures=TOP_CLOSURES
             )
         if cierres_completos:
-            return render_template("cierre_masivo.html", desaparecidas=cierres_completos, creadas_count=len(creadas), top_closures=TOP_CLOSURES)
+            return render_template("cierre_masivo.html", desaparecidas=cierres_completos_vista, creadas_count=len(creadas), top_closures=TOP_CLOSURES)
             
         flash(f"Sincronización HFC exitosa. Se registraron {len(creadas)} nuevas averías.", "success")
         return redirect(url_for("dashboard"))
@@ -851,16 +873,17 @@ def carga_hfc():
     cierres_completos, restauraciones_parciales = _separar_cierres_y_restauraciones(
         hfc_activas, planos_nuevos, grafana_rows_raw
     )
+    cierres_completos_vista = _preparar_cierres_vista(cierres_completos)
     if restauraciones_parciales:
         return render_template(
             "restauracion_parcial.html",
             restauraciones=restauraciones_parciales,
-            cierres_completos=cierres_completos,
+            cierres_completos=cierres_completos_vista,
             creadas_count=len(creadas),
             top_closures=TOP_CLOSURES
         )
     if cierres_completos:
-        return render_template("cierre_masivo.html", desaparecidas=cierres_completos, creadas_count=len(creadas), top_closures=TOP_CLOSURES)
+        return render_template("cierre_masivo.html", desaparecidas=cierres_completos_vista, creadas_count=len(creadas), top_closures=TOP_CLOSURES)
         
     flash(f"Sincronización HFC completa. Se registraron {len(creadas)} nuevas averías.", "success")
     return redirect(url_for("dashboard"))
@@ -939,6 +962,28 @@ def _separar_cierres_y_restauraciones(hfc_activas, planos_en_reporte_up: set, gr
     return cierres_completos, restauraciones_parciales
 
 
+class CierreWrapper:
+    """Wrapper para enriquecer incidencias con datos de planos y clientes para las vistas de cierre."""
+    def __init__(self, inc: Incidencia, planos_str: str, clientes: int):
+        self._inc = inc
+        self.planos_str = planos_str
+        self.clientes = clientes
+
+    def __getattr__(self, name):
+        return getattr(self._inc, name)
+
+
+def _preparar_cierres_vista(cierres_completos: list[Incidencia]) -> list[CierreWrapper]:
+    resultado = []
+    for inc in cierres_completos:
+        planos_inc = _extraer_planos_de_incidencia(inc)
+        p_name, cli_count = _obtener_plano_y_clientes(inc)
+        p_str = ", ".join(planos_inc) if planos_inc else (p_name or "—")
+        resultado.append(CierreWrapper(inc, p_str, cli_count))
+    return resultado
+
+
+
 @app.route("/restauracion-parcial", methods=["POST"])
 def restauracion_parcial():
     """Guarda la actualización de impacto cuando una masiva pierde algunos nodos parcialmente."""
@@ -992,6 +1037,8 @@ def restauracion_parcial():
     for key, value in request.form.items():
         if key.startswith("cierre_"):
             inc_id = key.replace("cierre_", "")
+            if request.form.get(f"excluir_cierre_{inc_id}") == "1":
+                continue
             motivo = value.strip() or "Se valida restablecimiento de servicios. Se cierra notificacion."
             inc_match = incidencias_repo.obtener_por_id(inc_id)
             if inc_match:
@@ -1322,7 +1369,7 @@ def completar_incidencia(id_):
 
 @app.route("/procesar-cierre-masivo", methods=["POST"])
 def procesar_cierre_masivo():
-    """Procesa los motivos de cierre ingresados para las averías recuperadas"""
+    """Procesa los motivos de cierre ingresados para las averías recuperadas."""
     hora_actual = now_peru().strftime("%H:%M")
     is_json_request = (
         request.headers.get("Accept") == "application/json"
@@ -1330,10 +1377,23 @@ def procesar_cierre_masivo():
     )
     
     mensajes_wssp = []
+    cerradas_count = 0
+
+    # Detectar incidencias expresamente excluidas ("Aún no se cierra")
+    excluidos_ids = {
+        key.replace("excluir_", "")
+        for key, value in request.form.items()
+        if key.startswith("excluir_") and value == "1"
+    }
+    mantenidas_count = len(excluidos_ids)
     
     for key, value in request.form.items():
         if key.startswith("motivo_"):
             inc_id = key.replace("motivo_", "")
+            
+            if inc_id in excluidos_ids:
+                continue
+                
             motivo = value.strip() or "Se valida restablecimiento de servicios. Se cierra notificación."
             
             inc_match = incidencias_repo.obtener_por_id(inc_id)
@@ -1348,6 +1408,7 @@ def procesar_cierre_masivo():
                     ultima_actualizacion=now_peru()
                 )
                 incidencias_repo.guardar(inc_actualizada)
+                cerradas_count += 1
 
                 # Generar mensaje WhatsApp de cierre para HFC
                 if inc_match.tipo == TipoIncidencia.HFC:
@@ -1363,9 +1424,20 @@ def procesar_cierre_masivo():
                     })
 
     if is_json_request:
-        return {"ok": True, "mensajes_wssp": mensajes_wssp}
+        return {
+            "ok": True,
+            "mensajes_wssp": mensajes_wssp,
+            "cerradas_count": cerradas_count,
+            "mantenidas_count": mantenidas_count,
+        }
                 
-    flash("Cierres masivos procesados de manera exitosa.", "success")
+    if cerradas_count > 0:
+        msg = f"Se procesaron {cerradas_count} cierre(s) de averías recuperadas."
+        if mantenidas_count > 0:
+            msg += f" ({mantenidas_count} avería(s) se mantuvieron activas)."
+        flash(msg, "success")
+    else:
+        flash("No se cerró ninguna avería. Se mantienen activas en el NOC.", "info")
     return redirect(url_for("dashboard"))
 
 

@@ -4,58 +4,176 @@
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
     <div class="bg-indigo-950/40 border border-indigo-900 rounded-xl p-6 shadow-xl">
-        <h2 class="text-lg font-bold text-indigo-400 mb-2">Sincronización Completa: Nuevas Registradas</h2>
-        <p class="text-sm text-slate-300">Se han ingresado {{ creadas_count }} nuevas averías HFC a la base de datos de manera correcta.</p>
+        <h2 class="text-lg font-bold text-indigo-400 mb-2">
+            <i class="fa-solid fa-layer-group mr-2"></i>Actualización HFC
+        </h2>
+        <p class="text-sm text-slate-300">
+            {% if creadas_count > 0 %}
+            Se han detectado <strong>{{ creadas_count }}</strong> nueva(s) avería(s) HFC.
+            {% else %}
+            No se detectaron nuevas incidencias para crear. Validar cierre de averías.
+            {% endif %}
+        </p>
     </div>
 
     <div class="space-y-4">
-        <div>
-            <h3 class="text-lg font-bold text-slate-200">⚠️ Se detectaron Averías Recuperadas</h3>
-            <p class="text-xs text-slate-500 mt-1">Los siguientes planos ya no aparecen con alertas activas en el reporte de Grafana. Seleccione o escriba un motivo para documentar el cierre.</p>
+        <!-- Banner explicativo -->
+        <div class="bg-amber-950/30 border border-amber-800/50 rounded-xl p-5 shadow-lg">
+            <div class="flex items-start gap-3.5">
+                <div class="text-amber-400 text-2xl mt-0.5">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="text-base font-bold text-amber-300">Averías Recuperadas Detectadas</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Los siguientes planos ya no figuran con fallas activas en el reporte de Grafana.
+                        Si alguna incidencia <strong>aún no debe cerrarse</strong>, pulse el botón <span
+                            class="inline-flex items-center gap-1 font-semibold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/40 text-[11px]"><i
+                                class="fa-solid fa-pause"></i> Pendiente</span> en la tarjeta correspondiente
+                        para excluirla y mantenerla activa en el sistema.
+                    </p>
+                </div>
+            </div>
         </div>
+
+        <!-- Barra de herramientas y filtros rápidos -->
+        {% if desaparecidas | length > 1 %}
+        <div
+            class="flex items-center justify-between bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2.5 text-xs">
+            <div id="counter-summary" class="text-slate-400">
+                Total detectadas: <strong class="text-slate-200">{{ desaparecidas | length }}</strong>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="marcarTodasExcluidas(true)"
+                    class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition flex items-center gap-1 cursor-pointer">
+                    <i class="fa-solid fa-pause"></i>
+                    <span>Aún no cerrar ninguna</span>
+                </button>
+                <button type="button" onclick="marcarTodasExcluidas(false)"
+                    class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1 cursor-pointer">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Marcar todas para cerrar</span>
+                </button>
+            </div>
+        </div>
+        {% endif %}
 
         <form id="form-cierre-masivo" action="/procesar-cierre-masivo" method="POST" class="space-y-4">
             {% for inc in desaparecidas %}
-                <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-xs font-mono font-bold text-indigo-400 bg-indigo-950/50 border border-indigo-900 px-2.5 py-1 rounded">
-                                {{ inc.inc }}
-                            </span>
-                            <span class="text-sm font-semibold text-slate-200 ml-2">Ubicación: {{ inc.departamento }} / {{ inc.distrito }}</span>
-                        </div>
+            <div id="card_{{ inc.id }}"
+                class="card-cierre bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4 transition-all duration-200">
+                <div class="flex items-center justify-between flex-wrap gap-2.5">
+                    <div class="flex items-center flex-wrap gap-2">
+                        <span
+                            class="text-xs font-mono font-bold text-indigo-400 bg-indigo-950/50 border border-indigo-900 px-2.5 py-1 rounded">
+                            {{ inc.inc }}
+                        </span>
+                        {% if inc.planos_str %}
+                        <span
+                            class="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 px-2.5 py-1 rounded flex items-center gap-1"
+                            title="Plano(s) asociados a esta incidencia">
+                            <i class="fa-solid fa-tower-broadcast text-[10px]"></i> {{ inc.planos_str }}
+                        </span>
+                        {% endif %}
+                        {% if inc.clientes %}
+                        <span class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
+                            <i class="fa-solid fa-users mr-1 text-slate-500"></i>{{ inc.clientes }} cli.
+                        </span>
+                        {% endif %}
+                        <span class="text-xs text-slate-300 ml-1">
+                            <i class="fa-solid fa-location-dot text-slate-500 mr-1"></i>{{ inc.departamento }} / {{
+                            inc.distrito }}
+                        </span>
+                        <!-- Badge dinámico de exclusión -->
+                        <span id="badge_status_{{ inc.id }}"
+                            class="hidden text-xs font-bold px-2.5 py-0.5 rounded bg-amber-950/90 border border-amber-500 text-amber-300 shadow-sm animate-pulse">
+                            <i class="fa-solid fa-hourglass-half mr-1"></i> AÚN NO SE CIERRA (Se mantendrá activa)
+                        </span>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Plantilla de Cierre rápido</label>
-                            <select onchange="actualizarMotivo('{{ inc.id }}', this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
-                                {% if top_closures %}
-                                    {% for tc in top_closures %}
-                                        <option value="{{ tc }}">{{ tc }}</option>
-                                    {% endfor %}
-                                {% else %}
-                                    <option value="Se valida restablecimiento de servicios. Se cierra notificación.">Se valida restablecimiento de servicios. Se cierra notificación.</option>
-                                    <option value="Se valida retorno de energía comercial. Se restablecen servicios. Se cierra notificación.">Se valida retorno de energía comercial. Se restablecen servicios. Se cierra notificación.</option>
-                                    <option value="Se finaliza fusiones de FO. Se verifica servicios restablecidos. Se cierra notificacion.">Se finaliza fusiones de FO. Se verifica servicios restablecidos. Se cierra notificacion.</option>
-                                    <option value="Se instala GGEE, Se verifica servicios restablecidos. Se cierra notificacion.">Se instala GGEE, Se verifica servicios restablecidos. Se cierra notificacion.</option>
-                                    <option value="Personal realiza mantenimiento en equipos de AA. Temperatura se reestablece en valores normales.">Personal realiza mantenimiento en equipos de AA. Temperatura se reestablece en valores normales.</option>
-                                    <option value="Se retorna energia comercial. Se normaliza temperaturas.">Se retorna energia comercial. Se normaliza temperaturas.</option>
-                                    <option value="Retorna energia comercial. Se verifica servicios restablecidos. Se cierra notificacion.">Retorna energia comercial. Se verifica servicios restablecidos. Se cierra notificacion.</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Motivo del Cierre (Editable)</label>
-                            <input type="text" id="motivo_{{ inc.id }}" name="motivo_{{ inc.id }}" value="Se valida restablecimiento de servicios. Se cierra notificación." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
-                        </div>
+                    <!-- Botón para excluir/incluir -->
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="btn_toggle_{{ inc.id }}" onclick="toggleExcluirCierre('{{ inc.id }}')"
+                            class="btn-toggle-cierre px-3 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-slate-900 border-amber-500/50 text-amber-400 hover:bg-amber-950/60 hover:border-amber-400 hover:text-amber-300 shadow-sm"
+                            title="Excluir esta incidencia del cierre y mantenerla activa en el sistema">
+                            <i class="fa-solid fa-pause"></i>
+                            <span id="btn_toggle_text_{{ inc.id }}">Pendiente</span>
+                        </button>
+                        <input type="hidden" id="excluir_{{ inc.id }}" name="excluir_{{ inc.id }}" value="0">
                     </div>
                 </div>
+
+                <!-- Mensaje informativo cuando está excluida -->
+                <div id="notice_excluido_{{ inc.id }}"
+                    class="hidden p-3 rounded-lg bg-amber-950/20 border border-amber-800/40 text-xs text-amber-300/90 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-amber-400 shrink-0"></i>
+                    <span>Esta incidencia <strong>no será borrada ni cerrada</strong>. Permanecerá abierta con sus datos
+                        y observaciones intactas en el NOC.</span>
+                </div>
+
+                <!-- Campos de motivo de cierre -->
+                <div id="motivo_container_{{ inc.id }}"
+                    class="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-200">
+                    <div>
+                        <label
+                            class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Plantilla
+                            de Cierre rápido</label>
+                        <select id="select_{{ inc.id }}" onchange="actualizarMotivo('{{ inc.id }}', this.value)"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                            {% if top_closures %}
+                            {% for tc in top_closures %}
+                            <option value="{{ tc }}">{{ tc }}</option>
+                            {% endfor %}
+                            {% else %}
+                            <option value="Se valida restablecimiento de servicios. Se cierra notificación.">Se valida
+                                restablecimiento de servicios. Se cierra notificación.</option>
+                            <option
+                                value="Se valida retorno de energía comercial. Se restablecen servicios. Se cierra notificación.">
+                                Se valida retorno de energía comercial. Se restablecen servicios. Se cierra
+                                notificación.</option>
+                            <option
+                                value="Se finaliza fusiones de FO. Se verifica servicios restablecidos. Se cierra notificacion.">
+                                Se finaliza fusiones de FO. Se verifica servicios restablecidos. Se cierra notificacion.
+                            </option>
+                            <option
+                                value="Se instala GGEE, Se verifica servicios restablecidos. Se cierra notificacion.">Se
+                                instala GGEE, Se verifica servicios restablecidos. Se cierra notificacion.</option>
+                            <option
+                                value="Personal realiza mantenimiento en equipos de AA. Temperatura se reestablece en valores normales.">
+                                Personal realiza mantenimiento en equipos de AA. Temperatura se reestablece en valores
+                                normales.</option>
+                            <option
+                                value="Personal realiza acciones correctivas. Se verifica servicios restablecidos. Se cierra notificacion.">
+                                Personal realiza acciones correctivas. Se verifica servicios restablecidos. Se cierra
+                                notificacion.</option>
+                            <option
+                                value="Retorna energia comercial. Se verifica servicios restablecidos. Se cierra notificacion.">
+                                Retorna energia comercial. Se verifica servicios restablecidos. Se cierra notificacion.
+                            </option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Motivo
+                            del Cierre (Editable)</label>
+                        <input type="text" id="motivo_{{ inc.id }}" name="motivo_{{ inc.id }}"
+                            value="Se valida restablecimiento de servicios. Se cierra notificación."
+                            class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+            </div>
             {% endfor %}
 
-            <div class="flex justify-end pt-2">
-                <button type="submit" id="btn-cierre-masivo" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-lg transition text-sm cursor-pointer">
-                    <i class="fa-solid fa-lock mr-1.5"></i> Confirmar Cierre de Recuperadas
+            <!-- Botones finales de acción -->
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+                <a href="/"
+                    class="bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-semibold px-4 py-2.5 rounded-lg border border-slate-800 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left"></i> Cancelar y volver al Dashboard
+                </a>
+                <button type="submit" id="btn-cierre-masivo"
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-lg transition text-sm cursor-pointer shadow-lg flex items-center gap-2">
+                    <i class="fa-solid fa-lock"></i>
+                    <span id="btn-cierre-text">Confirmar Cierre de Recuperadas ({{ desaparecidas | length }})</span>
                 </button>
             </div>
         </form>
@@ -63,39 +181,143 @@
 </div>
 
 <script>
-function actualizarMotivo(id, valor) {
-    document.getElementById("motivo_" + id).value = valor;
-}
-
-document.getElementById("form-cierre-masivo").addEventListener("submit", async function(e) {
-    e.preventDefault();
-    const form = e.target;
-    const btn = document.getElementById("btn-cierre-masivo");
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1.5"></i> Procesando cierres...';
+    function actualizarMotivo(id, valor) {
+        const input = document.getElementById("motivo_" + id);
+        if (input) input.value = valor;
     }
 
-    try {
-        const formData = new FormData(form);
-        const resp = await fetch(form.action, {
-            method: 'POST',
-            headers: { 'Accept': 'application/json' },
-            body: formData
-        });
-        const data = await resp.json();
+    function toggleExcluirCierre(id) {
+        const card = document.getElementById("card_" + id);
+        const inputExcluir = document.getElementById("excluir_" + id);
+        const inputMotivo = document.getElementById("motivo_" + id);
+        const selectMotivo = document.getElementById("select_" + id);
+        const badgeStatus = document.getElementById("badge_status_" + id);
+        const btnToggle = document.getElementById("btn_toggle_" + id);
+        const btnToggleText = document.getElementById("btn_toggle_text_" + id);
+        const motivoContainer = document.getElementById("motivo_container_" + id);
+        const noticeExcluido = document.getElementById("notice_excluido_" + id);
 
-        if (data.ok && data.mensajes_wssp && data.mensajes_wssp.length > 0) {
-            window._wsspCierreRedirectUrl = '/';
-            abrirModalWsspCierre(data.mensajes_wssp);
+        if (!inputExcluir) return;
+        const isExcluido = inputExcluir.value === "1";
+
+        if (!isExcluido) {
+            // Marcar como "Aún no se cierra" (excluida)
+            inputExcluir.value = "1";
+            if (inputMotivo) inputMotivo.disabled = true;
+            if (selectMotivo) selectMotivo.disabled = true;
+
+            if (card) {
+                card.classList.remove("border-slate-800", "bg-slate-950");
+                card.classList.add("border-amber-700/60", "bg-slate-950/60");
+            }
+
+            if (badgeStatus) badgeStatus.classList.remove("hidden");
+            if (noticeExcluido) noticeExcluido.classList.remove("hidden");
+            if (motivoContainer) {
+                motivoContainer.classList.add("opacity-40", "pointer-events-none");
+            }
+
+            if (btnToggle) {
+                btnToggle.className = "btn-toggle-cierre px-3 py-1.5 rounded-lg border text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white";
+                btnToggle.innerHTML = '<i class="fa-solid fa-rotate-left"></i><span>Cerrar incidencia</span>';
+                btnToggle.title = "Volver a marcar esta incidencia para ser cerrada";
+            }
         } else {
-            window.location.href = '/';
+            // Revertir a "Por cerrar"
+            inputExcluir.value = "0";
+            if (inputMotivo) inputMotivo.disabled = false;
+            if (selectMotivo) selectMotivo.disabled = false;
+
+            if (card) {
+                card.classList.remove("border-amber-700/60", "bg-slate-950/60");
+                card.classList.add("border-slate-800", "bg-slate-950");
+            }
+
+            if (badgeStatus) badgeStatus.classList.add("hidden");
+            if (noticeExcluido) noticeExcluido.classList.add("hidden");
+            if (motivoContainer) {
+                motivoContainer.classList.remove("opacity-40", "pointer-events-none");
+            }
+
+            if (btnToggle) {
+                btnToggle.className = "btn-toggle-cierre px-3 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer bg-slate-900 border-amber-500/50 text-amber-400 hover:bg-amber-950/60 hover:border-amber-400 hover:text-amber-300 shadow-sm";
+                btnToggle.innerHTML = '<i class="fa-solid fa-pause"></i><span>Pendiente</span>';
+                btnToggle.title = "Excluir esta incidencia del cierre y mantenerla activa en el sistema";
+            }
         }
-    } catch (err) {
-        console.error("Error procesando cierres:", err);
-        form.removeAttribute("data-submitted");
-        form.submit();
+
+        actualizarContadorBoton();
     }
-});
+
+    function marcarTodasExcluidas(excluir) {
+        document.querySelectorAll('input[name^="excluir_"]').forEach(function (inp) {
+            const id = inp.id.replace("excluir_", "");
+            const actualExcluido = inp.value === "1";
+            if ((excluir && !actualExcluido) || (!excluir && actualExcluido)) {
+                toggleExcluirCierre(id);
+            }
+        });
+    }
+
+    function actualizarContadorBoton() {
+        const totalCards = document.querySelectorAll(".card-cierre").length;
+        const inputsExcluir = document.querySelectorAll('input[name^="excluir_"]');
+        let excluidos = 0;
+        inputsExcluir.forEach(function (inp) {
+            if (inp.value === "1") excluidos++;
+        });
+        const aCerrar = totalCards - excluidos;
+        const btn = document.getElementById("btn-cierre-masivo");
+        const btnText = document.getElementById("btn-cierre-text");
+        const counterSummary = document.getElementById("counter-summary");
+
+        if (counterSummary) {
+            counterSummary.innerHTML = `Total: <strong class="text-slate-200">${totalCards}</strong> · <span class="text-indigo-400">${aCerrar} a cerrar</span> · <span class="text-amber-400">${excluidos} se mantendrán activas</span>`;
+        }
+
+        if (!btn || !btnText) return;
+
+        if (aCerrar === 0) {
+            btn.className = "bg-amber-600 hover:bg-amber-500 text-white font-semibold px-6 py-2.5 rounded-lg transition text-sm cursor-pointer shadow-lg flex items-center gap-2";
+            btn.innerHTML = '<i class="fa-solid fa-check"></i><span id="btn-cierre-text">Continuar sin cerrar ninguna (Se mantienen activas)</span>';
+        } else if (excluidos > 0) {
+            btn.className = "bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-lg transition text-sm cursor-pointer shadow-lg flex items-center gap-2";
+            btn.innerHTML = `<i class="fa-solid fa-lock"></i><span id="btn-cierre-text">Confirmar Cierre (${aCerrar}) · ${excluidos} se mantendrán</span>`;
+        } else {
+            btn.className = "bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-lg transition text-sm cursor-pointer shadow-lg flex items-center gap-2";
+            btn.innerHTML = `<i class="fa-solid fa-lock"></i><span id="btn-cierre-text">Confirmar Cierre de Recuperadas (${totalCards})</span>`;
+        }
+    }
+
+    document.getElementById("form-cierre-masivo").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const btn = document.getElementById("btn-cierre-masivo");
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1.5"></i> Procesando...';
+        }
+
+        try {
+            const formData = new FormData(form);
+            const resp = await fetch(form.action, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+                body: formData
+            });
+            const data = await resp.json();
+
+            if (data.ok && data.mensajes_wssp && data.mensajes_wssp.length > 0) {
+                window._wsspCierreRedirectUrl = '/';
+                abrirModalWsspCierre(data.mensajes_wssp);
+            } else {
+                window.location.href = '/';
+            }
+        } catch (err) {
+            console.error("Error procesando cierres masivos:", err);
+            form.removeAttribute("data-submitted");
+            form.submit();
+        }
+    });
 </script>
 {% endblock %}

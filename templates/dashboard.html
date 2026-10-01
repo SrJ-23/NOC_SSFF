@@ -90,7 +90,7 @@
                         class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
                         <option value="">Seleccione personal...</option>
                         {% for p in personal_list %}
-                        <option value="{{ p.nombre }}">{{ p.nombre }} ({{ p.cargo }})</option>
+                        <option value="{{ p.nombre }}" {% if p.nombre == 'Miguel Barja' %}selected{% endif %}>{{ p.nombre }} ({{ p.cargo }})</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -482,7 +482,7 @@
                 <!-- Modo Desagrupado / Tabla por Nodo -->
                 <div id="panel-tabla-individual" class="hidden space-y-3">
                     <div class="flex items-center justify-between">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <h4 id="tabla-individual-titulo" class="text-xs font-bold text-slate-400 uppercase tracking-wider">
                             Registro Individual por Nodo (<span id="hfc-count">0</span>)
                         </h4>
                         <div class="flex items-center space-x-2">
@@ -492,12 +492,12 @@
                                 <option value="">BOSF Global...</option>
                                 <option value="Cristhian Torres">Cristhian Torres</option>
                                 <option value="Lila Trujillo">Lila Trujillo</option>
-                                <option value="Miguel Barja">Miguel Barja</option>
+                                <option value="Miguel Barja" selected>Miguel Barja</option>
                                 <option value="Jesús Carrasco">Jesús Carrasco</option>
                             </select>
-                            <input type="text" id="global-hora" value="{{ hora_actual }}" placeholder="HH:MM"
+                            <input type="time" id="global-hora" value="{{ hora_actual }}"
                                 onchange="aplicarHoraGlobal(this.value)"
-                                class="w-16 bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-200 font-mono text-center">
+                                class="w-24 bg-slate-900 border border-slate-700 rounded p-1 text-xs text-slate-200 font-mono text-center [color-scheme:dark]">
                         </div>
                     </div>
 
@@ -652,8 +652,8 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Hora Avería
                         (HH:MM)</label>
-                    <input type="text" name="hora_averia" value="{{ hora_actual }}"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                    <input type="time" name="hora_averia" value="{{ hora_actual }}" required
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-center [color-scheme:dark]">
                 </div>
             </div>
 
@@ -692,7 +692,7 @@
                         class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
                         <option value="">Seleccione personal...</option>
                         {% for p in personal_list %}
-                        <option value="{{ p.nombre }}">{{ p.nombre }}</option>
+                        <option value="{{ p.nombre }}" {% if p.nombre == 'Miguel Barja' %}selected{% endif %}>{{ p.nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -969,8 +969,31 @@
     let excluidosSet = new Set();  // planos excluidos de toda Incidencia Masiva -> van individuales
     let modoFusionado = false;     // true = combinar todos los anillos en 1 sola incidencia
     let ultimoAnalisis = null;     // última respuesta de /api/analizar-hfc sobre los nodos incluidos
+    const nodosConfigPersonalizada = {}; // plano -> { bosf, hora, inc }
+
+    function guardarValoresTarjetasEnCache() {
+        document.querySelectorAll("#grupos-anillo-container .grupo-card").forEach(card => {
+            const cardBosf = card.querySelector(".grp-bosf")?.value;
+            const cardHora = card.querySelector(".grp-hora")?.value;
+            const cardInc = card.querySelector(".grp-inc")?.value;
+            try {
+                const nodos = JSON.parse(card.dataset.nodosJson || "[]");
+                nodos.forEach(n => {
+                    if (n.plano) {
+                        if (!nodosConfigPersonalizada[n.plano]) {
+                            nodosConfigPersonalizada[n.plano] = {};
+                        }
+                        if (cardBosf) nodosConfigPersonalizada[n.plano].bosf = cardBosf;
+                        if (cardHora) nodosConfigPersonalizada[n.plano].hora = cardHora;
+                        if (cardInc && cardInc !== "EN PROCESO") nodosConfigPersonalizada[n.plano].inc = cardInc;
+                    }
+                });
+            } catch (e) {}
+        });
+    }
 
     function toggleModoAgrupado(agrupar) {
+        guardarValoresTarjetasEnCache();
         const panelIndividual = document.getElementById("panel-tabla-individual");
         if (agrupar) {
             actualizarAnalisisAnillo();
@@ -981,7 +1004,9 @@
         }
     }
 
-    function toggleExclusion(plano, incluido) {
+    function toggleExclusion(plano, incluido, inputEl) {
+        // Guardar primero la configuración actual de la tarjeta para que el plano excluido la herede
+        guardarValoresTarjetasEnCache();
         if (incluido) {
             excluidosSet.delete(plano);
         } else {
@@ -991,14 +1016,16 @@
     }
 
     async function actualizarAnalisisAnillo() {
+        guardarValoresTarjetasEnCache();
         const panelAnillo = document.getElementById("panel-anillo-container");
+        const panelTabla = document.getElementById("panel-tabla-individual");
         const incluidos = nuevasActuales.filter(r => !excluidosSet.has(r.plano));
 
         if (incluidos.length === 0) {
             panelAnillo.classList.add("hidden");
             document.getElementById("chk-agrupar-anillo").checked = false;
             document.getElementById("campos-modo-agrupado").classList.add("hidden");
-            document.getElementById("panel-tabla-individual").classList.remove("hidden");
+            panelTabla.classList.remove("hidden");
             ultimoAnalisis = null;
             renderTablaIndividual();
             return;
@@ -1018,18 +1045,20 @@
             return;
         }
 
-        const gruposReales = (ultimoAnalisis.grupos || []).filter(g => g.es_ring_real);
+        // Una masiva real REQUIERE tener es_ring_real y al menos 2 nodos
+        const gruposReales = (ultimoAnalisis.grupos || []).filter(g => g.es_ring_real && (g.nodos || []).length >= 2);
 
-        // Los nodos sin anillo real detectado nunca pueden ir en una masiva: se excluyen automáticamente
-        (ultimoAnalisis.grupos || []).filter(g => !g.es_ring_real).forEach(g => {
-            g.nodos.forEach(n => excluidosSet.add(n.plano));
+        // Los nodos sin anillo real o que quedaron solos (<2 nodos) se registran individualmente
+        (ultimoAnalisis.grupos || []).filter(g => !g.es_ring_real || (g.nodos || []).length < 2).forEach(g => {
+            (g.nodos || []).forEach(n => excluidosSet.add(n.plano));
         });
 
         if (gruposReales.length === 0) {
+            // No queda ningún grupo con 2 o más planos: todo pasa automáticamente a registro individual
             panelAnillo.classList.add("hidden");
             document.getElementById("chk-agrupar-anillo").checked = false;
             document.getElementById("campos-modo-agrupado").classList.add("hidden");
-            document.getElementById("panel-tabla-individual").classList.remove("hidden");
+            panelTabla.classList.remove("hidden");
             renderTablaIndividual();
             return;
         }
@@ -1037,39 +1066,98 @@
         panelAnillo.classList.remove("hidden");
         document.getElementById("chk-agrupar-anillo").checked = true;
         document.getElementById("campos-modo-agrupado").classList.remove("hidden");
-        document.getElementById("panel-tabla-individual").classList.add("hidden");
         document.getElementById("fusion-toggle-container").classList.toggle("hidden", gruposReales.length < 2);
         document.getElementById("fusion-toggle-container").classList.toggle("flex", gruposReales.length >= 2);
 
         renderGruposUI();
+
+        // Mostrar la tabla individual inferior si hay nodos excluidos o individuales
+        const planosEnMasivas = new Set(gruposReales.flatMap(g => (g.nodos || []).map(n => n.plano)));
+        const filasIndiv = nuevasActuales.filter(r => !planosEnMasivas.has(r.plano));
+        if (filasIndiv.length > 0) {
+            panelTabla.classList.remove("hidden");
+        } else {
+            panelTabla.classList.add("hidden");
+        }
+
         renderTablaIndividual();
     }
 
     function renderGruposUI() {
         if (!ultimoAnalisis) return;
-        const gruposReales = (ultimoAnalisis.grupos || []).filter(g => g.es_ring_real);
+        const gruposReales = (ultimoAnalisis.grupos || []).filter(g => g.es_ring_real && (g.nodos || []).length >= 2);
         const container = document.getElementById("grupos-anillo-container");
         container.innerHTML = "";
 
         if (gruposReales.length === 0) return;
 
-        if (modoFusionado || gruposReales.length === 1) {
-            document.getElementById("anillo-detectado-badge").innerText = ultimoAnalisis.anillo_str || "Anillo de Distribución";
-            document.getElementById("anillo-subtext").innerText = `Comparten equipo: ${ultimoAnalisis.cmts_str || 'OLT/CMTS Central'} · ${gruposReales.reduce((n, g) => n + g.nodos.length, 0)} Nodos Afectados`;
-            container.appendChild(renderGrupoCard({
-                anillo_str: ultimoAnalisis.anillo_str,
-                cmts_str: ultimoAnalisis.cmts_str,
-                distritos_str: ultimoAnalisis.distritos_str,
-                distritos_stats: ultimoAnalisis.distritos_stats,
-                detalle_distritos: ultimoAnalisis.detalle_distritos,
-                total_afectados: ultimoAnalisis.total_afectados,
-                planos_str: ultimoAnalisis.planos_str,
-                primer_inc: ultimoAnalisis.primer_inc,
-                nodos: gruposReales.flatMap(g => g.nodos)
-            }, true));
+        // Agrupar por departamento para nunca mezclar departamentos distintos
+        const deptsMap = {};
+        gruposReales.forEach(g => {
+            const d = (g.departamento || "LIMA").toUpperCase();
+            if (!deptsMap[d]) deptsMap[d] = [];
+            deptsMap[d].push(g);
+        });
+
+        const totalDepts = Object.keys(deptsMap).length;
+
+        if (gruposReales.length === 1) {
+            const g = gruposReales[0];
+            document.getElementById("anillo-detectado-badge").innerText = `${g.anillo_str} (${g.departamento})`;
+            document.getElementById("anillo-subtext").innerText = `Departamento: ${g.departamento} · ${g.nodos.length} Nodos Afectados`;
+            container.appendChild(renderGrupoCard(g, false));
+        } else if (modoFusionado) {
+            document.getElementById("anillo-detectado-badge").innerText = `Anillos Fusionados (${totalDepts > 1 ? totalDepts + ' Departamentos' : gruposReales[0].departamento})`;
+            document.getElementById("anillo-subtext").innerText = "Se han combinado los anillos dentro del mismo departamento en incidencias masivas correspondientes.";
+
+            Object.entries(deptsMap).forEach(([deptName, grpsDept]) => {
+                if (grpsDept.length === 1) {
+                    container.appendChild(renderGrupoCard(grpsDept[0], false));
+                } else {
+                    // Combinar anillos del MISMO departamento
+                    const nombresAnillos = [...new Set(grpsDept.map(g => g.anillo_str))];
+                    const anilloStrCombinado = nombresAnillos.join(" y ");
+                    const distritosStatsComb = {};
+                    grpsDept.forEach(g => {
+                        Object.entries(g.distritos_stats || {}).forEach(([distName, distVal]) => {
+                            if (!distritosStatsComb[distName]) {
+                                distritosStatsComb[distName] = { ...distVal };
+                            } else {
+                                distritosStatsComb[distName].nodos += distVal.nodos;
+                                distritosStatsComb[distName].afectados += distVal.afectados;
+                                const tot = distritosStatsComb[distName].total_distrito;
+                                distritosStatsComb[distName].porcentaje = tot > 0 ? Math.round((distritosStatsComb[distName].afectados / tot) * 10000) / 100 : 0;
+                            }
+                        });
+                    });
+
+                    const detalleDistsComb = Object.entries(distritosStatsComb).map(([dName, dVal]) => 
+                        `${dName}: ${dVal.nodos} nodos, ${dVal.afectados} de ${dVal.total_distrito} (${dVal.porcentaje}%)`
+                    ).join(" | ");
+
+                    const todosNodos = grpsDept.flatMap(g => g.nodos);
+                    const planosStrComb = todosNodos.map(n => `${n.plano} (${n.clientes})`).join(", ");
+                    const primerInc = grpsDept.map(g => g.primer_inc).find(inc => inc && inc !== "EN PROCESO") || "EN PROCESO";
+
+                    container.appendChild(renderGrupoCard({
+                        anillo_str: anilloStrCombinado,
+                        departamento: deptName,
+                        provincia: grpsDept[0].provincia,
+                        cmts_str: [...new Set(grpsDept.map(g => g.cmts_str).filter(Boolean))].join(", "),
+                        distritos_str: Object.keys(distritosStatsComb).join(" "),
+                        distritos_stats: distritosStatsComb,
+                        detalle_distritos: detalleDistsComb,
+                        total_afectados: grpsDept.reduce((sum, g) => sum + g.total_afectados, 0),
+                        planos_str: planosStrComb,
+                        primer_inc: primerInc,
+                        nodos: todosNodos
+                    }, true));
+                }
+            });
         } else {
-            document.getElementById("anillo-detectado-badge").innerText = `${gruposReales.length} Anillos Separados`;
-            document.getElementById("anillo-subtext").innerText = "Cada anillo se registrará como una Incidencia Masiva independiente (puede fusionarlos arriba).";
+            const deptText = totalDepts > 1 ? ` · ${totalDepts} Departamentos` : ` · ${gruposReales[0].departamento}`;
+            document.getElementById("anillo-detectado-badge").innerText = `${gruposReales.length} Anillos Separados${deptText}`;
+            document.getElementById("anillo-subtext").innerText = "Cada anillo se registrará como una Incidencia Masiva independiente discriminado por departamento.";
             gruposReales.forEach(g => container.appendChild(renderGrupoCard(g, false)));
         }
     }
@@ -1080,14 +1168,24 @@
         card.className = "grupo-card bg-slate-900/90 border border-slate-800 rounded-lg p-3 space-y-3";
         const planosStr = grupo.planos_str || (grupo.nodos || []).map(n => `${n.plano} (${n.clientes})`).join(", ");
         card.dataset.anilloStr = grupo.anillo_str || "Anillo Principal";
+        card.dataset.departamento = grupo.departamento || "LIMA";
+        card.dataset.provincia = grupo.provincia || "LIMA";
         card.dataset.distritosStr = grupo.distritos_str || "LIMA";
         card.dataset.detalleDistritos = grupo.detalle_distritos || "";
         card.dataset.planosStr = planosStr;
         card.dataset.totalAfectados = grupo.total_afectados || 0;
         card.dataset.nodosJson = JSON.stringify(grupo.nodos || []);
 
+        const primerNodo = (grupo.nodos || [])[0];
+        const configExistente = primerNodo ? nodosConfigPersonalizada[primerNodo.plano] : null;
+        const bosfInicial = configExistente?.bosf || "Miguel Barja";
+        const horaInicial = configExistente?.hora || horaActual;
+
         let bosfOptionsHtml = `<option value="">Seleccione BOSF...</option>`;
-        BOSF_OPTIONS.forEach(b => { bosfOptionsHtml += `<option value="${b}">${b}</option>`; });
+        BOSF_OPTIONS.forEach(b => { 
+            const isSel = (b === bosfInicial) ? "selected" : "";
+            bosfOptionsHtml += `<option value="${b}" ${isSel}>${b}</option>`; 
+        });
 
         let nodosHtml = "";
         (grupo.nodos || []).forEach(n => {
@@ -1096,7 +1194,7 @@
                 <span class="text-slate-300">${n.plano} <span class="text-slate-500">(${n.clientes} cli.)</span></span>
                 <span class="flex items-center space-x-1.5 text-slate-400">
                     <span>Incluir</span>
-                    <input type="checkbox" checked onchange="toggleExclusion('${n.plano}', this.checked)" class="accent-indigo-600">
+                    <input type="checkbox" checked onchange="toggleExclusion('${n.plano}', this.checked, this)" class="accent-indigo-600">
                 </span>
             </label>`;
         });
@@ -1110,17 +1208,21 @@
             </div>`;
         }
 
-        const incValue = (grupo.primer_inc && grupo.primer_inc !== "EN PROCESO") ? grupo.primer_inc : "";
+        const incValue = (configExistente?.inc && configExistente.inc !== "EN PROCESO") ? configExistente.inc : ((grupo.primer_inc && grupo.primer_inc !== "EN PROCESO") ? grupo.primer_inc : "");
 
         card.innerHTML = `
-        <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider">
-            ${esFusion ? "Incidencia Masiva Combinada" : ("Anillo: " + (grupo.anillo_str || ""))}
+        <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-nodes text-indigo-400"></i>
+                <span>${esFusion ? "Incidencia Masiva Combinada: " + (grupo.anillo_str || "") : ("Anillo: " + (grupo.anillo_str || ""))}</span>
+                <span class="ml-1 px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-700/80 text-[10px] text-indigo-200 font-bold tracking-wide">${grupo.departamento || 'LIMA'}</span>
+            </span>
             <span class="text-slate-500 font-normal normal-case ml-1">· ${(grupo.nodos || []).length} nodos</span>
         </h4>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div>
                 <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ticket Asignado (INC)</label>
-                <input type="text" class="grp-inc w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-indigo-300 font-mono focus:border-indigo-500" value="${incValue}" placeholder="INC000...">
+                <input type="text" oninput="guardarValoresTarjetasEnCache()" class="grp-inc w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-indigo-300 font-mono focus:border-indigo-500" value="${incValue}" placeholder="INC000...">
             </div>
             <div>
                 <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tipo de Falla</label>
@@ -1133,13 +1235,13 @@
             </div>
             <div>
                 <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">BOSF Asignado</label>
-                <select class="grp-bosf w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:border-indigo-500">
+                <select onchange="guardarValoresTarjetasEnCache()" class="grp-bosf w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:border-indigo-500">
                     ${bosfOptionsHtml}
                 </select>
             </div>
             <div>
                 <label class="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Hora Avería (HH:MM)</label>
-                <input type="text" class="grp-hora w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 font-mono text-center focus:border-indigo-500" value="${horaActual}">
+                <input type="time" onchange="guardarValoresTarjetasEnCache()" class="grp-hora w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 font-mono text-center focus:border-indigo-500 [color-scheme:dark]" value="${horaInicial}">
             </div>
         </div>
         <div class="bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-xs space-y-1">
@@ -1158,20 +1260,48 @@
         const tbody = document.getElementById("hfc-tbody");
         const horaActual = document.getElementById("global-hora") ? document.getElementById("global-hora").value : "{{ hora_actual }}";
         const enModoMasiva = document.getElementById("chk-agrupar-anillo").checked;
-        const filas = enModoMasiva ? nuevasActuales.filter(r => excluidosSet.has(r.plano)) : nuevasActuales;
 
-        document.getElementById("hfc-count").innerText = filas.length;
+        let filas = [];
+        if (enModoMasiva && ultimoAnalisis) {
+            const gruposReales = (ultimoAnalisis.grupos || []).filter(g => g.es_ring_real && (g.nodos || []).length >= 2);
+            const planosEnMasivas = new Set(gruposReales.flatMap(g => (g.nodos || []).map(n => n.plano)));
+            filas = nuevasActuales.filter(r => !planosEnMasivas.has(r.plano));
+        } else {
+            filas = nuevasActuales;
+        }
+
+        const countEl = document.getElementById("hfc-count");
+        if (countEl) countEl.innerText = filas.length;
         tbody.innerHTML = "";
 
-        let bosfOptionsHtml = `<option value="">Seleccione BOSF...</option>`;
-        BOSF_OPTIONS.forEach(b => { bosfOptionsHtml += `<option value="${b}">${b}</option>`; });
+        const tituloTabla = document.getElementById("tabla-individual-titulo");
+        if (tituloTabla) {
+            if (enModoMasiva && filas.length > 0) {
+                tituloTabla.innerHTML = `<i class="fa-solid fa-user-gear mr-1 text-amber-400"></i> Nodos Descartados / Registro Individual (<span id="hfc-count">${filas.length}</span>)`;
+            } else {
+                tituloTabla.innerHTML = `<i class="fa-solid fa-list-check mr-1 text-slate-400"></i> Registro Individual por Nodo (<span id="hfc-count">${filas.length}</span>)`;
+            }
+        }
 
         filas.forEach((r) => {
+            const conf = nodosConfigPersonalizada[r.plano] || {};
+            const bosfVal = conf.bosf || (document.getElementById("global-bosf") ? document.getElementById("global-bosf").value : "Miguel Barja");
+            const horaVal = conf.hora || horaActual;
+            const incVal = (conf.inc && conf.inc !== "EN PROCESO") ? conf.inc : (r.inc || "");
+
+            let bosfOptionsHtml = `<option value="">Seleccione BOSF...</option>`;
+            BOSF_OPTIONS.forEach(b => { 
+                const isSel = (b === bosfVal) ? "selected" : "";
+                bosfOptionsHtml += `<option value="${b}" ${isSel}>${b}</option>`; 
+            });
+
             const tr = document.createElement("tr");
             tr.className = "hover:bg-slate-900/50 transition";
             tr.innerHTML = `
             <td class="p-2.5">
-                <input type="text" name="inc_row[]" value="${r.inc}" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-indigo-300 font-mono focus:border-indigo-500">
+                <input type="text" name="inc_row[]" value="${incVal}" 
+                    oninput="if(!nodosConfigPersonalizada['${r.plano}']) nodosConfigPersonalizada['${r.plano}'] = {}; nodosConfigPersonalizada['${r.plano}'].inc = this.value;"
+                    class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-indigo-300 font-mono focus:border-indigo-500">
                 <input type="hidden" name="plano_row[]" value="${r.plano}">
             </td>
             <td class="p-2.5">
@@ -1182,12 +1312,16 @@
                 <input type="number" name="clientes_row[]" value="${r.clientes}" class="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 text-center font-mono focus:border-indigo-500">
             </td>
             <td class="p-2.5">
-                <select name="bosf_row[]" class="row-bosf w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 focus:border-indigo-500">
+                <select name="bosf_row[]" 
+                    onchange="if(!nodosConfigPersonalizada['${r.plano}']) nodosConfigPersonalizada['${r.plano}'] = {}; nodosConfigPersonalizada['${r.plano}'].bosf = this.value;"
+                    class="row-bosf w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 focus:border-indigo-500">
                     ${bosfOptionsHtml}
                 </select>
             </td>
             <td class="p-2.5">
-                <input type="text" name="hora_row[]" value="${horaActual}" placeholder="HH:MM" class="row-hora w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 font-mono text-center focus:border-indigo-500">
+                <input type="time" name="hora_row[]" value="${horaVal}" 
+                    onchange="if(!nodosConfigPersonalizada['${r.plano}']) nodosConfigPersonalizada['${r.plano}'] = {}; nodosConfigPersonalizada['${r.plano}'].hora = this.value;"
+                    class="row-hora w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 font-mono text-center focus:border-indigo-500 [color-scheme:dark]">
             </td>
         `;
             tbody.appendChild(tr);
@@ -1196,9 +1330,9 @@
         if (enModoMasiva && filas.length > 0) {
             const trNotice = document.createElement("tr");
             trNotice.innerHTML = `
-            <td colspan="5" class="p-2 text-center bg-indigo-950/30 border-t border-indigo-800/40 text-indigo-300 text-[11px]">
-                <i class="fa-solid fa-circle-info mr-1"></i>
-                ${filas.length} nodo(s) excluido(s) de la Masiva: se registrarán como incidencias individuales.
+            <td colspan="5" class="p-2.5 text-center bg-amber-950/20 border-t border-amber-800/40 text-amber-300 text-xs">
+                <i class="fa-solid fa-circle-info mr-1 text-amber-400"></i>
+                ${filas.length} nodo(s) descartado(s) de la Masiva o individuales: han heredado BOSF y Hora de su anillo, pero puede editarlos libremente aquí.
             </td>
         `;
             tbody.appendChild(trNotice);
@@ -1226,24 +1360,39 @@
         if (document.getElementById("chk-agrupar-anillo").checked) {
             const grupos = [];
             document.querySelectorAll("#grupos-anillo-container .grupo-card").forEach(card => {
-                grupos.push({
-                    inc_principal: card.querySelector(".grp-inc").value.trim(),
-                    tipo_falla: card.querySelector(".grp-tipo").value,
-                    bosf: card.querySelector(".grp-bosf").value,
-                    hora: card.querySelector(".grp-hora").value,
-                    anillo_str: card.dataset.anilloStr,
-                    distritos_str: card.dataset.distritosStr,
-                    detalle_distritos: card.dataset.detalleDistritos,
-                    planos_str: card.dataset.planosStr,
-                    total_afectados: card.dataset.totalAfectados,
-                    nodos: JSON.parse(card.dataset.nodosJson || '[]'),
-                });
+                const nodos = JSON.parse(card.dataset.nodosJson || '[]');
+                if (nodos.length >= 2) {
+                    grupos.push({
+                        inc_principal: card.querySelector(".grp-inc").value.trim(),
+                        tipo_falla: card.querySelector(".grp-tipo").value,
+                        bosf: card.querySelector(".grp-bosf").value,
+                        hora: card.querySelector(".grp-hora").value,
+                        anillo_str: card.dataset.anilloStr,
+                        departamento: card.dataset.departamento,
+                        provincia: card.dataset.provincia,
+                        distritos_str: card.dataset.distritosStr,
+                        detalle_distritos: card.dataset.detalleDistritos,
+                        planos_str: card.dataset.planosStr,
+                        total_afectados: card.dataset.totalAfectados,
+                        nodos: nodos,
+                    });
+                }
             });
-            if (grupos.length === 0 && excluidosSet.size === 0) {
+
+            const filasIndivInputs = document.querySelectorAll("#hfc-tbody input[name='plano_row[]']");
+            if (grupos.length === 0 && filasIndivInputs.length === 0) {
                 e.preventDefault();
-                alert("No hay ninguna Incidencia Masiva configurada. Incluya al menos un nodo en un anillo, o desmarque 'Agrupar en Incidencia(s) Masiva(s)'.");
+                alert("No hay ninguna incidencia para registrar.");
                 return;
             }
+
+            if (grupos.length === 0) {
+                // Si al excluir nodos ningún grupo tiene 2 o más planos, se desactiva modo agrupado
+                document.getElementById("chk-agrupar-anillo").checked = false;
+                const hiddenMasiva = document.getElementById("hidden_es_masiva");
+                if (hiddenMasiva) hiddenMasiva.value = "0";
+            }
+
             document.getElementById("hidden_grupos_json").value = JSON.stringify(grupos);
         }
     });
@@ -1407,14 +1556,14 @@
 
     function aplicarBosfGlobal(val) {
         if (!val) return;
-        document.querySelectorAll(".row-bosf").forEach(sel => {
+        document.querySelectorAll(".row-bosf, .grp-bosf").forEach(sel => {
             sel.value = val;
         });
     }
 
     function aplicarHoraGlobal(val) {
         if (!val) return;
-        document.querySelectorAll(".row-hora").forEach(inp => {
+        document.querySelectorAll(".row-hora, .grp-hora").forEach(inp => {
             inp.value = val;
         });
     }

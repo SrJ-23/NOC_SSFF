@@ -4,25 +4,32 @@
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-5">
     <!-- Cabecera de la Avería -->
-    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-3">
+    <div
+        class="bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center space-x-3">
-            <a href="/" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition" title="Regresar al Dashboard">
+            <a href="/"
+                class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition"
+                title="Regresar al Dashboard">
                 <i class="fa-solid fa-arrow-left text-sm"></i>
             </a>
             <div>
                 <div class="flex items-center gap-2">
                     <h2 class="text-lg font-bold text-white font-mono tracking-tight">{{ inc.inc }}</h2>
                     {% if es_ftth %}
-                    <span class="text-[10px] px-2 py-0.5 bg-teal-950/80 border border-teal-700/60 text-teal-300 rounded font-bold uppercase tracking-wider">FTTH</span>
+                    <span
+                        class="text-[10px] px-2 py-0.5 bg-teal-950/80 border border-teal-700/60 text-teal-300 rounded font-bold uppercase tracking-wider">FTTH</span>
                     {% else %}
-                    <span class="text-[10px] px-2 py-0.5 bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 rounded font-bold uppercase tracking-wider">HFC</span>
+                    <span
+                        class="text-[10px] px-2 py-0.5 bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 rounded font-bold uppercase tracking-wider">HFC</span>
                     {% endif %}
-                    <span class="text-[11px] px-2.5 py-0.5 bg-slate-900 border border-slate-800 text-slate-400 rounded font-mono">
+                    <span
+                        class="text-[11px] px-2.5 py-0.5 bg-slate-900 border border-slate-800 text-slate-400 rounded font-mono">
                         {{ inc.departamento }} / {{ inc.distrito }}
                     </span>
                 </div>
                 <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
-                    <span><i class="fa-regular fa-clock mr-1 text-slate-600"></i>Inicio: <strong class="text-slate-400 font-mono">{{ inc.hora_inicio.strftime('%H:%M') }}h</strong></span>
+                    <span><i class="fa-regular fa-clock mr-1 text-slate-600"></i>Inicio: <strong
+                            class="text-slate-400 font-mono">{{ inc.hora_inicio.strftime('%H:%M') }}h</strong></span>
                     <span>·</span>
                     <span>BOSF: <strong class="text-slate-400">{{ inc.bosf or 'Pendiente' }}</strong></span>
                 </p>
@@ -34,9 +41,11 @@
         <div>
             <button type="button" onclick="abrirModalNce()"
                 class="bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-700/60 hover:border-emerald-500 px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-sm group cursor-pointer">
-                <i class="fa-solid fa-magnifying-glass-chart text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                <i
+                    class="fa-solid fa-magnifying-glass-chart text-emerald-400 group-hover:scale-110 transition-transform"></i>
                 <span>Verificar Recuperación NCE</span>
-                <span class="text-[9px] bg-emerald-900/80 text-emerald-200 px-1.5 py-0.5 rounded border border-emerald-700/60 font-mono">Huawei</span>
+                <span
+                    class="text-[9px] bg-emerald-900/80 text-emerald-200 px-1.5 py-0.5 rounded border border-emerald-700/60 font-mono">Huawei</span>
             </button>
         </div>
         {% endif %}
@@ -72,16 +81,20 @@
             <div class="bg-slate-900/70 border border-slate-800/90 rounded-xl p-4 space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
                     <div class="flex items-center gap-2">
-                        <div class="w-6 h-6 rounded-md bg-teal-950/80 border border-teal-700/60 flex items-center justify-center text-teal-400 text-xs">
+                        <div
+                            class="w-6 h-6 rounded-md bg-teal-950/80 border border-teal-700/60 flex items-center justify-center text-teal-400 text-xs">
                             <i class="fa-solid fa-stethoscope"></i>
                         </div>
                         <div>
-                            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Estado y Diagnóstico de la Avería</h4>
-                            <p class="text-[10px] text-slate-500">Parámetros estructurales de la incidencia (modifica solo si aplica)</p>
+                            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Estado y Diagnóstico
+                                de la Avería</h4>
+                            <p class="text-[10px] text-slate-500">Parámetros estructurales de la incidencia (modifica
+                                solo si aplica)</p>
                         </div>
                     </div>
                     {% if causa_raiz_actual or correctivo_actual or etiqueta_falla_actual %}
-                    <span class="text-[10px] bg-teal-950/60 text-teal-300 border border-teal-800/60 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
+                    <span
+                        class="text-[10px] bg-teal-950/60 text-teal-300 border border-teal-800/60 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
                         <i class="fa-solid fa-circle-check text-teal-400"></i> Datos Registrados
                     </span>
                     {% endif %}
@@ -90,26 +103,33 @@
                 <!-- Causa Raiz + Correctivo + Plano/Troncal -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Causa Raíz</label>
-                        <select name="causa_raiz" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Causa
+                            Raíz</label>
+                        <select name="causa_raiz"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
                             <option value="">-- Sin cambiar --</option>
                             {% for cr in causas_raiz %}
-                            <option value="{{ cr }}" {% if cr == causa_raiz_actual %}selected{% endif %}>{{ cr }}</option>
+                            <option value="{{ cr }}" {% if cr==causa_raiz_actual %}selected{% endif %}>{{ cr }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Correctivo Aplicado</label>
-                        <select name="correctivo" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
+                        <label
+                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Correctivo
+                            Aplicado</label>
+                        <select name="correctivo"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500">
                             <option value="">-- Sin cambiar --</option>
                             {% for co in correctivos %}
-                            <option value="{{ co }}" {% if co == correctivo_actual %}selected{% endif %}>{{ co }}</option>
+                            <option value="{{ co }}" {% if co==correctivo_actual %}selected{% endif %}>{{ co }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Troncal / Plano en Falla</label>
-                        <input type="text" name="etiqueta_falla" value="{{ etiqueta_falla_actual or '' }}" placeholder="Ej: Troncal 4 o Anillo S01"
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Troncal
+                            / Plano en Falla</label>
+                        <input type="text" name="etiqueta_falla" value="{{ etiqueta_falla_actual or '' }}"
+                            placeholder="Ej: Troncal 4 o Anillo S01"
                             class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-teal-500 font-mono">
                     </div>
                 </div>
@@ -118,47 +138,59 @@
                 <div class="border-t border-slate-800/80 pt-2">
                     <button type="button" id="btn-servicios-adicionales" onclick="toggleServiciosAdicionales()"
                         class="w-full flex items-center justify-between text-left px-3 py-2 rounded-lg bg-slate-950/80 border border-slate-800 hover:border-slate-700 transition group cursor-pointer">
-                        <span class="flex items-center gap-2 text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition">
+                        <span
+                            class="flex items-center gap-2 text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition">
                             <i class="fa-solid fa-network-wired text-amber-400"></i>
                             <span>¿Se afectan otros servicios? (Móvil / Corporativo / HFC)</span>
                             {% if hfc_nodos_actual or mbts_actual or corp_actual %}
-                            <span class="text-[10px] bg-amber-950/60 text-amber-300 border border-amber-800/60 px-2 py-0.5 rounded-full font-normal">
+                            <span
+                                class="text-[10px] bg-amber-950/60 text-amber-300 border border-amber-800/60 px-2 py-0.5 rounded-full font-normal">
                                 Impacto Registrado
                             </span>
                             {% endif %}
                         </span>
-                        <i id="icon-servicios-adicionales" class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform duration-200 {% if hfc_nodos_actual or mbts_actual or corp_actual %}rotate-180{% endif %}"></i>
+                        <i id="icon-servicios-adicionales"
+                            class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform duration-200 {% if hfc_nodos_actual or mbts_actual or corp_actual %}rotate-180{% endif %}"></i>
                     </button>
 
-                    <div id="panel-servicios-adicionales" class="{% if not (hfc_nodos_actual or mbts_actual or corp_actual) %}hidden{% endif %} mt-3 space-y-3">
+                    <div id="panel-servicios-adicionales"
+                        class="{% if not (hfc_nodos_actual or mbts_actual or corp_actual) %}hidden{% endif %} mt-3 space-y-3">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-2.5 space-y-1">
-                                <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <span
+                                    class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                                     <i class="fa-solid fa-tv"></i> Nodos Afectados HFC
                                 </span>
-                                <input type="number" name="hfc_nodos" min="0" value="{{ hfc_nodos_actual or '' }}" placeholder="0"
+                                <input type="number" name="hfc_nodos" min="0" value="{{ hfc_nodos_actual or '' }}"
+                                    placeholder="0"
                                     class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500">
                             </div>
                             <div class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-2.5 space-y-1">
-                                <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <span
+                                    class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                                     <i class="fa-solid fa-users"></i> Clientes Afectados HFC
                                 </span>
-                                <input type="number" name="hfc_clientes_afectados" min="0" value="{{ hfc_afectados_actual or '' }}" placeholder="0"
+                                <input type="number" name="hfc_clientes_afectados" min="0"
+                                    value="{{ hfc_afectados_actual or '' }}" placeholder="0"
                                     class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500">
                             </div>
                         </div>
                         <div class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-2.5 space-y-1">
-                            <span class="text-[10px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span
+                                class="text-[10px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
                                 <i class="fa-solid fa-tower-cell"></i> Afectación MBTS (Móvil)
                             </span>
-                            <textarea name="mbts_detalle" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-300 font-mono resize-none focus:border-violet-500"
+                            <textarea name="mbts_detalle" rows="2"
+                                class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-300 font-mono resize-none focus:border-violet-500"
                                 placeholder="Ej: 1 de 154 (0.649%) | PROVINCIAS: SAN MARTIN: 1 de 39">{{ mbts_actual or '' }}</textarea>
                         </div>
                         <div class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-2.5 space-y-1">
-                            <span class="text-[10px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <span
+                                class="text-[10px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
                                 <i class="fa-solid fa-building"></i> Afectación Corporativo
                             </span>
-                            <textarea name="corp_detalle" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-300 font-mono resize-none focus:border-rose-500"
+                            <textarea name="corp_detalle" rows="2"
+                                class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-300 font-mono resize-none focus:border-rose-500"
                                 placeholder="Ej: PROVINCIA SAN MARTIN: 09 servicios corporativos + 1 ONPE">{{ corp_actual or '' }}</textarea>
                         </div>
                     </div>
@@ -169,7 +201,8 @@
             <!-- PLANTILLAS RÁPIDAS DE AVANCE (CHIPS COMPACTOS) -->
             <div class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-3.5 space-y-2">
                 <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <span
+                        class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fa-solid fa-bolt text-indigo-400"></i> Plantillas Rápidas de Avance
                     </span>
                     <span class="text-[10px] text-slate-500">Haz clic para insertar en la nota</span>
@@ -179,7 +212,8 @@
                     <button type="button" onclick="insertarTexto('{{ item | e }}')"
                         class="text-left text-xs bg-slate-950/80 hover:bg-indigo-950/40 hover:border-indigo-500/60 border border-slate-800 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg transition flex items-center gap-2 group truncate cursor-pointer"
                         title="{{ item }}">
-                        <i class="fa-solid fa-comment-dots text-slate-500 group-hover:text-indigo-400 text-[10px] shrink-0"></i>
+                        <i
+                            class="fa-solid fa-comment-dots text-slate-500 group-hover:text-indigo-400 text-[10px] shrink-0"></i>
                         <span class="truncate">{{ item }}</span>
                     </button>
                     {% endfor %}
@@ -193,16 +227,24 @@
         <div id="seccion-modo-cierre" class="hidden space-y-4">
             <div class="bg-emerald-950/20 border border-emerald-800/40 rounded-xl p-4 space-y-3">
                 <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-700/60 flex items-center justify-center text-emerald-400 text-sm shrink-0">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-700/60 flex items-center justify-center text-emerald-400 text-sm shrink-0">
                         <i class="fa-solid fa-flag-checkered"></i>
                     </div>
                     <div class="space-y-1">
-                        <h4 class="text-xs font-bold text-emerald-300 uppercase tracking-wider">Cierre Definitivo de Avería</h4>
-                        <p class="text-xs text-slate-400">Esta acción cambiará el estado de la incidencia a <strong>CERRADA</strong> y archivará el soporte final.</p>
+                        <h4 class="text-xs font-bold text-emerald-300 uppercase tracking-wider">Cierre Definitivo de
+                            Avería</h4>
+                        <p class="text-xs text-slate-400">Esta acción cambiará el estado de la incidencia a
+                            <strong>CERRADA</strong> y archivará el soporte final.
+                        </p>
                         {% if causa_raiz_actual or correctivo_actual %}
                         <div class="flex flex-wrap gap-2 pt-1 text-[11px]">
-                            {% if causa_raiz_actual %}<span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">Causa Raíz: {{ causa_raiz_actual }}</span>{% endif %}
-                            {% if correctivo_actual %}<span class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">Correctivo: {{ correctivo_actual }}</span>{% endif %}
+                            {% if causa_raiz_actual %}<span
+                                class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">Causa
+                                Raíz: {{ causa_raiz_actual }}</span>{% endif %}
+                            {% if correctivo_actual %}<span
+                                class="bg-slate-900 border border-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">Correctivo:
+                                {{ correctivo_actual }}</span>{% endif %}
                         </div>
                         {% endif %}
                     </div>
@@ -211,7 +253,8 @@
                 <!-- Plantillas de Cierre -->
                 <div class="pt-2 border-t border-emerald-800/30 space-y-2">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span
+                            class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-check-circle text-emerald-400"></i> Plantillas de Cierre
                         </span>
                         <span class="text-[10px] text-slate-500">Haz clic para insertar en la nota de cierre</span>
@@ -220,7 +263,8 @@
                         {% for item in top_closures %}
                         <button type="button" onclick="insertarTexto('{{ item | e }}')"
                             class="text-left text-xs bg-slate-950/80 hover:bg-emerald-950/40 hover:border-emerald-500/60 border border-slate-800 text-slate-300 hover:text-white px-3 py-2 rounded-lg transition flex items-start gap-2 group cursor-pointer">
-                            <i class="fa-solid fa-circle-check text-emerald-500/70 group-hover:text-emerald-400 text-xs mt-0.5 shrink-0"></i>
+                            <i
+                                class="fa-solid fa-circle-check text-emerald-500/70 group-hover:text-emerald-400 text-xs mt-0.5 shrink-0"></i>
                             <span class="leading-snug">{{ item }}</span>
                         </button>
                         {% endfor %}
@@ -234,19 +278,22 @@
         <!-- ========================================================= -->
         <div class="space-y-4 pt-1 border-t border-slate-800/70">
             <div class="w-48">
-                <label id="label-hora-registro" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label id="label-hora-registro"
+                    class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                     Hora del Avance (HH:MM)
                 </label>
                 <div class="relative">
-                    <i class="fa-regular fa-clock absolute left-3 top-2.5 text-slate-500 text-xs"></i>
-                    <input type="text" name="hora" value="{{ hora_actual }}"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 pl-8 pr-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono">
+                    <i
+                        class="fa-regular fa-clock absolute left-3 top-2.5 text-slate-500 text-xs pointer-events-none"></i>
+                    <input type="time" name="hora" value="{{ hora_actual }}" required
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 pl-8 pr-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono [color-scheme:dark]">
                 </div>
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Detalles del Registro {% if es_ftth %}<span class="text-slate-500 font-normal text-[11px]">(Opcional si solo actualizas diagnóstico / impacto)</span>{% else %}(Obligatorio){% endif %}
+                    Detalles del Registro {% if es_ftth %}<span class="text-slate-500 font-normal text-[11px]">(Opcional
+                        si solo actualizas diagnóstico / impacto)</span>{% else %}(Obligatorio){% endif %}
                 </label>
                 <textarea id="novedad_field" name="novedad" rows="4" {% if not es_ftth %}required{% endif %}
                     class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 placeholder-slate-600 font-mono"
@@ -272,20 +319,26 @@
 <!-- MODAL INDEPENDIENTE: RECUPERACIÓN NCE (HUAWEI FTTH) -->
 <!-- ========================================================= -->
 {% if es_ftth %}
-<div id="modal-nce" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 space-y-4 shadow-2xl relative my-6">
+<div id="modal-nce"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div
+        class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-5 space-y-4 shadow-2xl relative my-6">
         <!-- Header Modal -->
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-emerald-950/80 border border-emerald-700/60 flex items-center justify-center text-emerald-400 text-sm">
+                <div
+                    class="w-8 h-8 rounded-lg bg-emerald-950/80 border border-emerald-700/60 flex items-center justify-center text-emerald-400 text-sm">
                     <i class="fa-solid fa-chart-line"></i>
                 </div>
                 <div>
-                    <h3 class="text-sm font-bold text-slate-100 uppercase tracking-wider">Verificar Recuperación de Clientes</h3>
-                    <p class="text-[11px] text-slate-400">Compara alarmas del momento de Huawei NCE vs la avería actual</p>
+                    <h3 class="text-sm font-bold text-slate-100 uppercase tracking-wider">Verificar Recuperación de
+                        Clientes</h3>
+                    <p class="text-[11px] text-slate-400">Compara alarmas del momento de Huawei NCE vs la avería actual
+                    </p>
                 </div>
             </div>
-            <button type="button" onclick="cerrarModalNce()" class="text-slate-400 hover:text-white text-lg px-2 py-1 rounded transition cursor-pointer">
+            <button type="button" onclick="cerrarModalNce()"
+                class="text-slate-400 hover:text-white text-lg px-2 py-1 rounded transition cursor-pointer">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
@@ -312,16 +365,20 @@
         </div>
 
         <!-- Error Div -->
-        <div id="ftth-analisis-error" class="hidden text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 p-2.5 rounded-lg"></div>
+        <div id="ftth-analisis-error"
+            class="hidden text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 p-2.5 rounded-lg"></div>
 
         <!-- Resultados del Análisis -->
-        <div id="ftth-analisis-resultados" class="hidden space-y-3 bg-slate-950/90 border border-emerald-800/40 p-3.5 rounded-xl">
+        <div id="ftth-analisis-resultados"
+            class="hidden space-y-3 bg-slate-950/90 border border-emerald-800/40 p-3.5 rounded-xl">
             <!-- Badges resumen -->
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
                 <div class="flex items-center gap-3 text-xs">
-                    <span class="text-slate-400">Antes: <strong id="ftth-badge-antes" class="text-slate-200 font-mono">0</strong> ONTs</span>
+                    <span class="text-slate-400">Antes: <strong id="ftth-badge-antes"
+                            class="text-slate-200 font-mono">0</strong> ONTs</span>
                     <span class="text-slate-600">→</span>
-                    <span class="text-slate-400">Ahora: <strong id="ftth-badge-ahora" class="text-amber-400 font-mono">0</strong> ONTs</span>
+                    <span class="text-slate-400">Ahora: <strong id="ftth-badge-ahora"
+                            class="text-amber-400 font-mono">0</strong> ONTs</span>
                     <span class="text-slate-700">|</span>
                     <span class="text-emerald-400 font-semibold flex items-center gap-1">
                         <i class="fa-solid fa-arrow-trend-down"></i>
@@ -350,7 +407,9 @@
             <div class="pt-2 border-t border-slate-800 space-y-2">
                 <div class="text-xs text-slate-300">
                     <span class="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">Nota Sugerida:</span>
-                    <p id="ftth-sugerencia-nota" class="font-mono text-emerald-300 bg-slate-900 p-2 rounded border border-slate-800 text-[11px]"></p>
+                    <p id="ftth-sugerencia-nota"
+                        class="font-mono text-emerald-300 bg-slate-900 p-2 rounded border border-slate-800 text-[11px]">
+                    </p>
                 </div>
                 <div class="flex justify-end gap-2 pt-1">
                     <button type="button" onclick="cerrarModalNce()"
@@ -464,7 +523,7 @@
         }
     }
 
-    document.addEventListener("keydown", function(e) {
+    document.addEventListener("keydown", function (e) {
         if (e.key === "Escape") {
             cerrarModalNce();
         }
@@ -577,11 +636,11 @@
     {% endif %}
 
     // Interceptor AJAX para cierre de incidencia (HFC y FTTH): muestra popup de WhatsApp
-    (function() {
+    (function () {
         const form = document.querySelector('form[action^="/actualizar/"]');
         if (!form) return;
 
-        form.addEventListener("submit", async function(e) {
+        form.addEventListener("submit", async function (e) {
             const tipoInput = document.getElementById("tipo_actualizacion_input");
             if (!tipoInput || tipoInput.value !== "CIERRE") return; // Solo interceptar cierres
 

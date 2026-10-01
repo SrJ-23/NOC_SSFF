@@ -116,11 +116,14 @@ class PlanosRepository(ReadOnlyRepository[Plano]):
         for r in registros:
             p_name = r.get("plano", "")
             plano_obj = self.obtener_por_id(p_name)
+            dept = plano_obj.departamento.strip().upper() if (plano_obj and plano_obj.departamento) else "DESCONOCIDO"
+
             anillo_key = None
             if plano_obj and plano_obj.anillo_troncal and plano_obj.anillo_troncal not in ("-", "DETERMINAR"):
-                anillo_key = plano_obj.anillo_troncal
+                # Se incluye el departamento para discriminar anillos homónimos entre distintas regiones
+                anillo_key = f"{dept}::{plano_obj.anillo_troncal.strip()}"
             else:
-                anillo_key = f"__SIN_ANILLO__{p_name}"
+                anillo_key = f"__SIN_ANILLO__{dept}::{p_name}"
 
             if anillo_key not in grupos_map:
                 grupos_map[anillo_key] = []
@@ -135,9 +138,10 @@ class PlanosRepository(ReadOnlyRepository[Plano]):
                 f"{d_name}: {d_val['nodos']} nodos, {d_val['afectados']} de {d_val['total_distrito']} ({d_val['porcentaje']}%)"
                 for d_name, d_val in meta["distritos_stats"].items()
             ]
+            planos_str = ", ".join(f"{r.get('plano')} ({r.get('clientes', 0)})" for r in filas)
             grupos.append({
                 "anillo_key": key,
-                "es_ring_real": not key.startswith("__SIN_ANILLO__"),
+                "es_ring_real": (not key.startswith("__SIN_ANILLO__")) and (len(filas) >= 2),
                 "anillo_str": meta["anillo_str"] or "Anillo Principal",
                 "cmts_str": meta["cmts_str"],
                 "departamento": meta["departamento"],
@@ -145,6 +149,7 @@ class PlanosRepository(ReadOnlyRepository[Plano]):
                 "distritos_str": meta["distritos_str"],
                 "distritos_stats": meta["distritos_stats"],
                 "detalle_distritos": " | ".join(detalle_dists),
+                "planos_str": planos_str,
                 "total_afectados": sum(int(r.get("clientes", 0) or 0) for r in filas),
                 "total_nodos": len(filas),
                 "nodos": [

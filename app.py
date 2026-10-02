@@ -1,7 +1,10 @@
 # app.py
 import os
 import time
-
+# DEV: Andres Ccoyllo Sanchez
+# NOC SSFF
+# 2026
+# Paso 1 de como entrar a Claro :v 
 # Configurar zona horaria de Perú a nivel de entorno/OS
 os.environ["TZ"] = "America/Lima"
 if hasattr(time, "tzset"):
@@ -15,7 +18,7 @@ import re
 from dataclasses import replace
 
 # Inyección de dependencias usando tu arquitectura limpia
-from src.data.sheets_client import SQLiteSheetsClient
+from src.data.sheets_client import SQLiteSheetsClient, PostgresSheetsClient
 from src.repositories.incidencias_repository import IncidenciasRepository
 from src.repositories.planos_repository import PlanosRepository
 from src.repositories.personal_repository import PersonalRepository
@@ -30,8 +33,18 @@ from src.utils.time_utils import calcular_semaforo, formatear_duracion, now_peru
 app = Flask(__name__)
 app.secret_key = "noc_fixed_services_secure_session_key"
 
-# Instanciación de componentes
-db_client = SQLiteSheetsClient()
+# Instanciación de componentes (Soporte dual: PostgreSQL en producción / SQLite local)
+database_url = os.environ.get("DATABASE_URL")
+if database_url:
+    try:
+        db_client = PostgresSheetsClient(database_url)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error conectando a PostgreSQL ({e}). Fallback a SQLite.")
+        db_client = SQLiteSheetsClient()
+else:
+    db_client = SQLiteSheetsClient()
+
 incidencias_repo = IncidenciasRepository(db_client)
 incidencia_service = IncidenciaService(incidencias_repo)
 personal_repo = PersonalRepository(db_client)
@@ -677,7 +690,7 @@ def carga_hfc():
                 pl_obj = planos_repo.obtener_por_id(primer_plano) if primer_plano else None
                 if not dept:
                     dept = pl_obj.departamento if pl_obj else "LIMA"
-                if not prov:
+                if not prov:                                                     
                     prov = pl_obj.provincia if pl_obj else "LIMA"
 
             nodos_lista = grupo.get("nodos") or []
@@ -717,7 +730,7 @@ def carga_hfc():
             if not primer_anillo_str:
                 primer_anillo_str = anillo_str
 
-        # Nodos EXCLUIDOS de la(s) masiva(s): se registran como incidencias individuales
+        # Nodos EXCLUIDOS de la(s) masiva(s): se registran como incidencias individuales , alguien lee la documentación???
         creadas_individuales = []
         if "plano_row[]" in request.form:
             planos = request.form.getlist("plano_row[]")
@@ -1027,7 +1040,7 @@ def restauracion_parcial():
                 )
                 incidencias_repo.guardar(inc_actualizada)
 
-    # También procesar cierres completos que vengan embebidos en el mismo formulario
+    # También procesar cierres completos que vengan embebidos en el mismo formulario. No, enserio. Estas leyendo la documentación??
     is_json_request = (
         request.headers.get("Accept") == "application/json"
         or request.headers.get("X-Requested-With") == "XMLHttpRequest"
@@ -1379,7 +1392,7 @@ def procesar_cierre_masivo():
     mensajes_wssp = []
     cerradas_count = 0
 
-    # Detectar incidencias expresamente excluidas ("Aún no se cierra")
+    # Detectar incidencias expresamente excluidas ("Aún no se cierra"). Si lees esto eres exitoso.
     excluidos_ids = {
         key.replace("excluir_", "")
         for key, value in request.form.items()
@@ -1559,7 +1572,7 @@ def api_carga_anterior():
     for b in bloques:
         p = parsear_bloque_averia(b, planos_repo)
         
-        # Buscar si ya existe por código INC o por plano activo
+        # Buscar si ya existe por código INC o por plano activo. 
         inc_existente = None
         if p.inc and p.inc != "EN PROCESO":
             inc_existente = incidencias_repo.obtener_por_inc(p.inc)
@@ -1644,7 +1657,7 @@ def api_resumen_turno():
             "resumen": "=================\n=====AVERÍAS=====\n=================\n\n*No hay averías activas pendientes en el turno.*"
         }
 
-    # Ordenar cronológicamente (más recientes primero)
+    # Ordenar cronológicamente (más recientes primero). Si no has entendido esto, déjalo así.
     activas_ordenadas = sorted(activas, key=lambda x: x.hora_inicio, reverse=True)
     personal_list = personal_repo.listar_activos()
 
@@ -1723,16 +1736,16 @@ def api_evaluar_recuperacion_ftth(id_):
     es_recuperacion_total = (total_ahora == 0)
 
     if es_recuperacion_total:
-        sugerencia_nota = f"Se valida restablecimiento total de servicios FTTH ({total_antes} clientes recuperados). Se procede con el cierre."
+        sugerencia_nota = "Se valida restablecimiento total de servicios. PEXT informa que finalizan fusiones de FO. Se procede con el cierre de la notificación."
         accion_sugerida = "CIERRE"
     elif total_recuperados > 0:
-        sugerencia_nota = f"Se observa restablecimiento {total_recuperados} clientes FTTH. Quedan {total_ahora} clientes afectados. Se mantendrá en monitoreo."
+        sugerencia_nota = f"PEXT informa que continuan realizando fusiones de FO. Se observa restablecimiento {total_recuperados} clientes FTTH. Quedan {total_ahora} clientes afectados. Se actualiza impacto."
         accion_sugerida = "ACTUALIZACION"
     else:
         sugerencia_nota = f"Se verifica monitoreo de alarmas FTTH. Se mantienen {total_ahora} clientes afectados."
         accion_sugerida = "ACTUALIZACION"
 
-    # Preparar string para actualizar observaciones de la incidencia
+    # Preparar string para actualizar observaciones de la incidencia 
     planos_nuevos_str = ", ".join(f"{p['plano']} ({p['onts_ahora']})" for p in planos_comparativa if p['onts_ahora'] > 0)
     if not planos_nuevos_str:
         planos_nuevos_str = ", ".join(f"{p['plano']} (0)" for p in planos_comparativa)
@@ -1792,7 +1805,7 @@ def actualizar(id_):
         
         nuevo_estado = EstadoIncidencia.ACTUALIZADA if tipo_actualizacion == "ACTUALIZACION" else EstadoIncidencia.CERRADA
         
-        # Para FTTH: guardar servicios adicionales (HFC/MBTS/Corporativo) si se llenaron
+        # Para FTTH: guardar servicios adicionales (HFC/MBTS/Corporativo) si se llenaron | Esta parte es un dolor de cabeza, en serio. 
         if inc.tipo == TipoIncidencia.FTTH:
             hfc_nodos = request.form.get("hfc_nodos", "").strip()
             hfc_clientes_afectados = request.form.get("hfc_clientes_afectados", "").strip()
@@ -1868,7 +1881,7 @@ def actualizar(id_):
         )
         incidencias_repo.guardar(inc_actualizada)
 
-        # Para cierre (HFC o FTTH): si la petición es AJAX, devolver mensaje WhatsApp de cierre
+        # Para cierre (HFC o FTTH): si la petición es AJAX, devolver mensaje WhatsApp de cierre. Si sigues leyendo esto tienes un problema mental serio. 
         is_json_request = (
             request.headers.get("Accept") == "application/json"
             or request.headers.get("X-Requested-With") == "XMLHttpRequest"

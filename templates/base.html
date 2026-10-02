@@ -95,7 +95,7 @@
         <div class="p-3 border-t border-slate-800/80">
             <div class="flex items-center justify-center space-x-2 text-[11px] text-slate-500 py-1">
                 <i class="fa-solid fa-database text-emerald-400/80 text-xs"></i>
-                <span class="sidebar-footer-text font-mono text-[10px] text-slate-400">SQLite Activo</span>
+                <span class="sidebar-footer-text font-mono text-[10px] text-slate-400">NOC SSFF BY Andres C.</span>
             </div>
         </div>
     </aside>
@@ -128,12 +128,16 @@
     </main>
 
     <!-- Modal Pop-Up de Detalle de Incidencia -->
-    <div id="modal-detalle" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 sm:p-6" onclick="if(event.target === this) cerrarModalDetalle()">
-        <div class="bg-slate-950 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+    <div id="modal-detalle"
+        class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 sm:p-6"
+        onclick="if(event.target === this) cerrarModalDetalle()">
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+            onclick="event.stopPropagation()">
             <!-- Header Modal -->
             <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
                 <div class="flex items-center space-x-3 overflow-hidden">
-                    <div class="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400">
+                    <div
+                        class="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shrink-0 text-indigo-400">
                         <i class="fa-solid fa-file-lines text-base"></i>
                     </div>
                     <div>
@@ -142,13 +146,17 @@
                                 <span>Detalle de Incidencia:</span>
                                 <span id="modal-det-inc" class="font-mono text-indigo-300">—</span>
                             </h3>
-                            <span id="modal-det-badge-tipo" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700"></span>
-                            <span id="modal-det-badge-estado" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700"></span>
+                            <span id="modal-det-badge-tipo"
+                                class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700"></span>
+                            <span id="modal-det-badge-estado"
+                                class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700"></span>
                         </div>
                         <p id="modal-det-subtitulo" class="text-xs text-slate-400 truncate mt-0.5"></p>
                     </div>
                 </div>
-                <button type="button" onclick="cerrarModalDetalle()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition" title="Cerrar (Esc)">
+                <button type="button" onclick="cerrarModalDetalle()"
+                    class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition"
+                    title="Cerrar (Esc)">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
@@ -162,7 +170,8 @@
                 </div>
 
                 <!-- Error State -->
-                <div id="modal-det-error" class="hidden p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center space-x-2">
+                <div id="modal-det-error"
+                    class="hidden p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center space-x-2">
                     <i class="fa-solid fa-triangle-exclamation text-base"></i>
                     <span id="modal-det-error-msg">Error al cargar la información.</span>
                 </div>
@@ -170,41 +179,54 @@
                 <!-- Content Grid -->
                 <div id="modal-det-content" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- Mensaje Estructurado WhatsApp -->
-                    <div class="lg:col-span-2 bg-slate-900/70 border border-slate-800/90 rounded-xl p-4 sm:p-5 flex flex-col space-y-3">
+                    <div
+                        class="lg:col-span-2 bg-slate-900/70 border border-slate-800/90 rounded-xl p-4 sm:p-5 flex flex-col space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <span
+                                class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                                 <i class="fa-brands fa-whatsapp text-emerald-400 text-sm"></i>
                                 <span>Mensaje Generado para WhatsApp</span>
                             </span>
-                            <button id="modal-det-btn-copiar" type="button" onclick="copiarMensajeModalDetalle()" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow flex items-center space-x-1.5 cursor-pointer">
+                            <button id="modal-det-btn-copiar" type="button" onclick="copiarMensajeModalDetalle()"
+                                class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow flex items-center space-x-1.5 cursor-pointer">
                                 <i class="fa-solid fa-clipboard text-xs"></i>
                                 <span>Copiar Mensaje</span>
                             </button>
                         </div>
-                        <textarea id="modal-det-whatsapp-text" readonly class="w-full h-72 sm:h-80 bg-slate-950 border border-slate-800 rounded-lg p-3.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 select-all resize-none shadow-inner leading-relaxed"></textarea>
+                        <textarea id="modal-det-whatsapp-text" readonly
+                            class="w-full h-72 sm:h-80 bg-slate-950 border border-slate-800 rounded-lg p-3.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 select-all resize-none shadow-inner leading-relaxed"></textarea>
                     </div>
 
                     <!-- Información de Campo y Supervisor -->
-                    <div class="bg-slate-900/70 border border-slate-800/90 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-5">
+                    <div
+                        class="bg-slate-900/70 border border-slate-800/90 rounded-xl p-4 sm:p-5 flex flex-col justify-between space-y-5">
                         <div class="space-y-4">
                             <div>
-                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Contratista Asignado</h4>
-                                <p id="modal-det-contratista-nombre" class="text-sm font-semibold text-slate-200">Sin asignar</p>
-                                <p id="modal-det-contratista-cargo" class="text-xs text-slate-400 mt-0.5">Rol no especificado</p>
+                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                    Contratista Asignado</h4>
+                                <p id="modal-det-contratista-nombre" class="text-sm font-semibold text-slate-200">Sin
+                                    asignar</p>
+                                <p id="modal-det-contratista-cargo" class="text-xs text-slate-400 mt-0.5">Rol no
+                                    especificado</p>
                             </div>
 
                             <div>
-                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Contacto Directo</h4>
+                                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Contacto
+                                    Directo</h4>
                                 <div class="flex items-center space-x-2">
-                                    <p id="modal-det-telefono" class="text-sm font-mono text-indigo-400 font-semibold">—</p>
-                                    <a id="modal-det-telefono-link" href="#" class="hidden text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1" title="Llamar">
+                                    <p id="modal-det-telefono" class="text-sm font-mono text-indigo-400 font-semibold">—
+                                    </p>
+                                    <a id="modal-det-telefono-link" href="#"
+                                        class="hidden text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+                                        title="Llamar">
                                         <i class="fa-solid fa-phone text-[10px]"></i>
                                     </a>
                                 </div>
                             </div>
 
                             <div class="pt-3 border-t border-slate-800 space-y-2">
-                                <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <h4
+                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                                     <i class="fa-solid fa-map-location-dot text-indigo-400"></i>
                                     <span>Ubicación y Equipo</span>
                                 </h4>
@@ -221,11 +243,13 @@
                             </div>
 
                             <div id="modal-det-planos-section" class="space-y-1.5">
-                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                                <p
+                                    class="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
                                     <span>Planos Afectados</span>
                                     <span id="modal-det-planos-count" class="text-indigo-400 font-mono">0</span>
                                 </p>
-                                <div id="modal-det-planos-list" class="divide-y divide-slate-800/80 bg-slate-950 border border-slate-800 rounded-lg overflow-hidden max-h-44 overflow-y-auto">
+                                <div id="modal-det-planos-list"
+                                    class="divide-y divide-slate-800/80 bg-slate-950 border border-slate-800 rounded-lg overflow-hidden max-h-44 overflow-y-auto">
                                     <!-- Planos dinámicos -->
                                 </div>
                             </div>
@@ -235,12 +259,15 @@
             </div>
 
             <!-- Footer Modal -->
-            <div class="px-6 py-3.5 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between text-xs">
-                <a id="modal-det-link-directo" href="#" target="_blank" class="text-slate-400 hover:text-indigo-300 transition flex items-center gap-1.5 font-medium">
+            <div
+                class="px-6 py-3.5 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between text-xs">
+                <a id="modal-det-link-directo" href="#" target="_blank"
+                    class="text-slate-400 hover:text-indigo-300 transition flex items-center gap-1.5 font-medium">
                     <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                     <span>Abrir en página independiente</span>
                 </a>
-                <button type="button" onclick="cerrarModalDetalle()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-1.5 rounded-lg font-semibold transition border border-slate-700 cursor-pointer">
+                <button type="button" onclick="cerrarModalDetalle()"
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-1.5 rounded-lg font-semibold transition border border-slate-700 cursor-pointer">
                     Cerrar
                 </button>
             </div>
@@ -286,18 +313,18 @@
         async function abrirModalDetalle(id) {
             const modal = document.getElementById('modal-detalle');
             if (!modal) return;
-            
+
             modal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
-            
+
             const loading = document.getElementById('modal-det-loading');
             const content = document.getElementById('modal-det-content');
             const errorEl = document.getElementById('modal-det-error');
-            
+
             if (loading) loading.classList.remove('hidden');
             if (content) content.classList.add('hidden');
             if (errorEl) errorEl.classList.add('hidden');
-            
+
             try {
                 const resp = await fetch(`/api/detalle/${id}`, {
                     headers: { 'Accept': 'application/json' }
@@ -305,17 +332,17 @@
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 if (!data.ok) throw new Error(data.error || 'No se pudo cargar el detalle');
-                
+
                 document.getElementById('modal-det-inc').innerText = data.inc.inc || '—';
-                
+
                 const badgeTipo = document.getElementById('modal-det-badge-tipo');
                 if (badgeTipo) {
                     badgeTipo.innerText = data.inc.tipo || '';
-                    badgeTipo.className = data.inc.tipo === 'FTTH' 
+                    badgeTipo.className = data.inc.tipo === 'FTTH'
                         ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800'
                         : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-950 text-violet-300 border border-violet-800';
                 }
-                
+
                 const badgeEstado = document.getElementById('modal-det-badge-estado');
                 if (badgeEstado) {
                     badgeEstado.innerText = data.inc.estado || '';
@@ -332,7 +359,7 @@
                 document.getElementById('modal-det-whatsapp-text').value = data.whatsapp_msg || '';
                 document.getElementById('modal-det-contratista-nombre').innerText = data.contratista.nombre || 'Sin asignar';
                 document.getElementById('modal-det-contratista-cargo').innerText = data.contratista.cargo || 'Rol no especificado';
-                
+
                 const telEl = document.getElementById('modal-det-telefono');
                 const telLink = document.getElementById('modal-det-telefono-link');
                 telEl.innerText = data.contratista.telefono || '—';
@@ -342,7 +369,7 @@
                 } else {
                     telLink.classList.add('hidden');
                 }
-                
+
                 document.getElementById('modal-det-hub').innerText = data.ubicacion.hub || '—';
                 document.getElementById('modal-det-cmts').innerText = data.ubicacion.cmts_olt || '—';
 
@@ -424,22 +451,26 @@
     <!-- ======================================================== -->
     <!-- MODAL GLOBAL: Mensaje WhatsApp de Cierre HFC              -->
     <!-- ======================================================== -->
-    <div id="modal-wssp-cierre" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4"
+    <div id="modal-wssp-cierre"
+        class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4"
         onclick="if(event.target === this) cerrarModalWsspCierre()">
         <div class="bg-slate-950 border border-emerald-800/60 rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
             onclick="event.stopPropagation()">
             <!-- Header -->
             <div class="px-6 py-4 border-b border-emerald-800/40 flex items-center justify-between bg-emerald-950/30">
                 <div class="flex items-center space-x-3">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <div
+                        class="w-9 h-9 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                         <i class="fa-brands fa-whatsapp text-lg"></i>
                     </div>
                     <div>
                         <h3 class="text-base font-bold text-emerald-200">Mensaje de Cierre para WhatsApp</h3>
-                        <p class="text-xs text-slate-400">Copie el mensaje de cierre y envíelo al grupo de WhatsApp correspondiente.</p>
+                        <p class="text-xs text-slate-400">Copie el mensaje de cierre y envíelo al grupo de WhatsApp
+                            correspondiente.</p>
                     </div>
                 </div>
-                <button type="button" onclick="cerrarModalWsspCierre()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                <button type="button" onclick="cerrarModalWsspCierre()"
+                    class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition cursor-pointer">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
@@ -455,7 +486,8 @@
                     <i class="fa-solid fa-circle-check text-emerald-400"></i>
                     Cierre procesado exitosamente
                 </span>
-                <button type="button" onclick="cerrarModalWsspCierre()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg font-semibold text-xs transition shadow cursor-pointer flex items-center gap-1.5">
+                <button type="button" onclick="cerrarModalWsspCierre()"
+                    class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg font-semibold text-xs transition shadow cursor-pointer flex items-center gap-1.5">
                     <i class="fa-solid fa-check"></i>
                     <span>Cerrar y Continuar</span>
                 </button>

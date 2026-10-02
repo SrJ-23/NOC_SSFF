@@ -146,44 +146,98 @@ DISTRITO(S):
         {% endfor %}
 
         {% if cierres_completos %}
-        <div class="bg-red-950/20 border border-red-800/40 rounded-xl p-5 space-y-3 shadow-lg">
-            <div class="flex items-center justify-between">
+        <div class="bg-red-950/20 border border-red-800/40 rounded-xl p-5 space-y-4 shadow-lg">
+            <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
                     <p class="text-sm font-bold text-red-400">
                         <i class="fa-solid fa-lock mr-1.5"></i>
                         Averías con Cierre Completo Detectadas ({{ cierres_completos | length }})
                     </p>
                     <p class="text-xs text-slate-400 mt-0.5">
-                        Todos los nodos de estas incidencias ya no figuran en Grafana. Si alguna aún no debe cerrarse, pulse <strong>"Aún no se cierra"</strong> para mantenerla activa.
+                        Todos los nodos de estas incidencias ya no figuran en Grafana. Seleccione o edite el motivo de cierre correspondiente. Si alguna aún no debe cerrarse, pulse <strong>"Pendiente"</strong> para mantenerla activa.
                     </p>
                 </div>
+                {% if cierres_completos | length > 1 %}
+                <div class="flex items-center gap-2 text-xs">
+                    <button type="button" onclick="marcarTodasExcluidasParcial(true)"
+                        class="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-500/30 transition flex items-center gap-1 cursor-pointer">
+                        <i class="fa-solid fa-pause"></i>
+                        <span>Aún no cerrar ninguna</span>
+                    </button>
+                    <button type="button" onclick="marcarTodasExcluidasParcial(false)"
+                        class="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition flex items-center gap-1 cursor-pointer">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>Marcar todas para cerrar</span>
+                    </button>
+                </div>
+                {% endif %}
             </div>
-            <div class="space-y-2.5 mt-2">
+
+            <div class="space-y-3.5 mt-2">
                 {% for inc_c in cierres_completos %}
-                <div id="cierre_item_{{ inc_c.id }}" class="flex items-center justify-between flex-wrap gap-2 bg-slate-900/80 border border-slate-700/60 rounded-lg p-3 transition">
-                    <div class="flex items-center flex-wrap gap-2">
-                        <span class="text-xs font-mono font-bold text-red-400 bg-red-950/50 border border-red-800/60 px-2 py-0.5 rounded">{{ inc_c.inc }}</span>
-                        {% if inc_c.planos_str %}
-                        <span class="text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded">
-                            <i class="fa-solid fa-tower-broadcast text-[10px]"></i> {{ inc_c.planos_str }}
-                        </span>
-                        {% endif %}
-                        <span class="text-xs text-slate-400">({{ inc_c.departamento }} / {{ inc_c.distrito }})</span>
-                        <span id="badge_cierre_parcial_{{ inc_c.id }}" class="hidden text-xs font-bold px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500 text-amber-300">
-                            <i class="fa-solid fa-hourglass-half mr-1"></i> Aún no se cierra (Se mantendrá activa)
-                        </span>
+                <div id="cierre_item_{{ inc_c.id }}" class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 space-y-3 transition-all duration-200">
+                    <div class="flex items-center justify-between flex-wrap gap-2.5">
+                        <div class="flex items-center flex-wrap gap-2">
+                            <span class="text-xs font-mono font-bold text-red-400 bg-red-950/50 border border-red-800/60 px-2.5 py-1 rounded">{{ inc_c.inc }}</span>
+                            {% if inc_c.planos_str %}
+                            <span class="text-xs font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-2.5 py-1 rounded">
+                                <i class="fa-solid fa-tower-broadcast text-[10px]"></i> {{ inc_c.planos_str }}
+                            </span>
+                            {% endif %}
+                            {% if inc_c.clientes %}
+                            <span class="text-xs text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-users mr-1 text-slate-500"></i>{{ inc_c.clientes }} cli.
+                            </span>
+                            {% endif %}
+                            <span class="text-xs text-slate-400">({{ inc_c.departamento }} / {{ inc_c.distrito }})</span>
+                            <span id="badge_cierre_parcial_{{ inc_c.id }}" class="hidden text-xs font-bold px-2.5 py-0.5 rounded bg-amber-950/90 border border-amber-500 text-amber-300 shadow-sm animate-pulse">
+                                <i class="fa-solid fa-hourglass-half mr-1"></i> AÚN NO SE CIERRA (Se mantendrá activa)
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" 
+                                    onclick="toggleExcluirCierreParcial('{{ inc_c.id }}')" 
+                                    id="btn_excluir_cierre_parcial_{{ inc_c.id }}" 
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 border border-amber-500/50 text-amber-400 hover:bg-amber-950/60 hover:border-amber-400 hover:text-amber-300 transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+                                    title="Excluir esta avería del cierre y mantenerla abierta en el NOC">
+                                <i class="fa-solid fa-pause"></i>
+                                <span id="btn_text_parcial_{{ inc_c.id }}">Pendiente</span>
+                            </button>
+                            <input type="hidden" id="excluir_cierre_{{ inc_c.id }}" name="excluir_cierre_{{ inc_c.id }}" value="0">
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button type="button" 
-                                onclick="toggleExcluirCierreParcial('{{ inc_c.id }}')" 
-                                id="btn_excluir_cierre_parcial_{{ inc_c.id }}" 
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 border border-amber-500/50 text-amber-400 hover:bg-amber-950/50 hover:border-amber-400 transition cursor-pointer flex items-center gap-1.5"
-                                title="Excluir esta avería del cierre y mantenerla abierta en el NOC">
-                            <i class="fa-solid fa-pause"></i>
-                            <span id="btn_text_parcial_{{ inc_c.id }}">Aún no se cierra</span>
-                        </button>
-                        <input type="hidden" id="excluir_cierre_{{ inc_c.id }}" name="excluir_cierre_{{ inc_c.id }}" value="0">
-                        <input type="hidden" id="cierre_{{ inc_c.id }}" name="cierre_{{ inc_c.id }}" value="Se valida restablecimiento de servicios. Se cierra notificacion.">
+
+                    <!-- Mensaje informativo cuando está excluida -->
+                    <div id="notice_cierre_parcial_{{ inc_c.id }}" class="hidden p-3 rounded-lg bg-amber-950/20 border border-amber-800/40 text-xs text-amber-300/90 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-amber-400 shrink-0"></i>
+                        <span>Esta incidencia <strong>no será borrada ni cerrada</strong>. Permanecerá abierta con sus datos y observaciones intactas en el NOC.</span>
+                    </div>
+
+                    <!-- Campos de motivo de cierre -->
+                    <div id="motivo_container_cierre_{{ inc_c.id }}" class="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-200">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Plantilla de Cierre rápido</label>
+                            <select id="select_cierre_{{ inc_c.id }}" onchange="actualizarMotivoCierre('{{ inc_c.id }}', this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                                {% if top_closures %}
+                                    {% for tc in top_closures %}
+                                    <option value="{{ tc }}">{{ tc }}</option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="Se valida restablecimiento de servicios. Se cierra notificación.">Se valida restablecimiento de servicios. Se cierra notificación.</option>
+                                    <option value="Se valida retorno de energía comercial. Se restablecen servicios. Se cierra notificación.">Se valida retorno de energía comercial. Se restablecen servicios. Se cierra notificación.</option>
+                                    <option value="Se finaliza fusiones de FO. Se verifica servicios restablecidos. Se cierra notificacion.">Se finaliza fusiones de FO. Se verifica servicios restablecidos. Se cierra notificacion.</option>
+                                    <option value="Se instala GGEE, Se verifica servicios restablecidos. Se cierra notificacion.">Se instala GGEE, Se verifica servicios restablecidos. Se cierra notificacion.</option>
+                                    <option value="Personal realiza mantenimiento en equipos de AA. Temperatura se reestablece en valores normales.">Personal realiza mantenimiento en equipos de AA. Temperatura se reestablece en valores normales.</option>
+                                    <option value="Se retorna energia comercial. Se normaliza temperaturas.">Se retorna energia comercial. Se normaliza temperaturas.</option>
+                                    <option value="Personal realiza acciones correctivas. Se verifica servicios restablecidos. Se cierra notificacion.">Personal realiza acciones correctivas. Se verifica servicios restablecidos. Se cierra notificacion.</option>
+                                    <option value="Retorna energia comercial. Se verifica servicios restablecidos. Se cierra notificacion.">Retorna energia comercial. Se verifica servicios restablecidos. Se cierra notificacion.</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Motivo del Cierre (Editable)</label>
+                            <input type="text" id="cierre_{{ inc_c.id }}" name="cierre_{{ inc_c.id }}" value="Se valida restablecimiento de servicios. Se cierra notificación." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -223,21 +277,32 @@ function copiarMensaje(id) {
     });
 }
 
+function actualizarMotivoCierre(id, valor) {
+    const input = document.getElementById("cierre_" + id);
+    if (input) input.value = valor;
+}
+
 function toggleExcluirCierreParcial(id) {
     const hiddenExcluir = document.getElementById("excluir_cierre_" + id);
-    const hiddenCierre = document.getElementById("cierre_" + id);
+    const inputCierre = document.getElementById("cierre_" + id);
+    const selectCierre = document.getElementById("select_cierre_" + id);
     const badge = document.getElementById("badge_cierre_parcial_" + id);
+    const notice = document.getElementById("notice_cierre_parcial_" + id);
+    const motivoContainer = document.getElementById("motivo_container_cierre_" + id);
     const btn = document.getElementById("btn_excluir_cierre_parcial_" + id);
     const item = document.getElementById("cierre_item_" + id);
     if (!hiddenExcluir) return;
 
     if (hiddenExcluir.value === "0") {
         hiddenExcluir.value = "1";
-        if (hiddenCierre) hiddenCierre.disabled = true;
+        if (inputCierre) inputCierre.disabled = true;
+        if (selectCierre) selectCierre.disabled = true;
         if (badge) badge.classList.remove("hidden");
+        if (notice) notice.classList.remove("hidden");
+        if (motivoContainer) motivoContainer.classList.add("opacity-40", "pointer-events-none");
         if (item) {
-            item.classList.remove("border-slate-700/60", "bg-slate-900/80");
-            item.classList.add("border-amber-700/60", "bg-slate-950/80");
+            item.classList.remove("border-slate-800", "bg-slate-950/80");
+            item.classList.add("border-amber-700/60", "bg-slate-950/60");
         }
         if (btn) {
             btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition cursor-pointer flex items-center gap-1.5";
@@ -245,17 +310,30 @@ function toggleExcluirCierreParcial(id) {
         }
     } else {
         hiddenExcluir.value = "0";
-        if (hiddenCierre) hiddenCierre.disabled = false;
+        if (inputCierre) inputCierre.disabled = false;
+        if (selectCierre) selectCierre.disabled = false;
         if (badge) badge.classList.add("hidden");
+        if (notice) notice.classList.add("hidden");
+        if (motivoContainer) motivoContainer.classList.remove("opacity-40", "pointer-events-none");
         if (item) {
-            item.classList.remove("border-amber-700/60", "bg-slate-950/80");
-            item.classList.add("border-slate-700/60", "bg-slate-900/80");
+            item.classList.remove("border-amber-700/60", "bg-slate-950/60");
+            item.classList.add("border-slate-800", "bg-slate-950/80");
         }
         if (btn) {
-            btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 border border-amber-500/50 text-amber-400 hover:bg-amber-950/50 hover:border-amber-400 transition cursor-pointer flex items-center gap-1.5";
-            btn.innerHTML = '<i class="fa-solid fa-pause"></i><span>Aún no se cierra</span>';
+            btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 border border-amber-500/50 text-amber-400 hover:bg-amber-950/60 hover:border-amber-400 hover:text-amber-300 transition cursor-pointer flex items-center gap-1.5 shadow-sm";
+            btn.innerHTML = '<i class="fa-solid fa-pause"></i><span>Pendiente</span>';
         }
     }
+}
+
+function marcarTodasExcluidasParcial(excluir) {
+    document.querySelectorAll('input[name^="excluir_cierre_"]').forEach(function(inp) {
+        const id = inp.id.replace("excluir_cierre_", "");
+        const actualExcluido = inp.value === "1";
+        if ((excluir && !actualExcluido) || (!excluir && actualExcluido)) {
+            toggleExcluirCierreParcial(id);
+        }
+    });
 }
 
 {% if cierres_completos %}
